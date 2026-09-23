@@ -1,3 +1,7 @@
+using System.Security.Claims;
+using System.Text.Json;
+using AspNet.Security.OAuth.GitHub;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -33,19 +37,31 @@ if (google.Exists())
     {
         options.ClientId = google["ClientId"]!;
         options.ClientSecret = google["ClientSecret"]!;
+        // Accounts are linked and admins bootstrapped by email, so only a verified one may pass.
+        options.ClaimActions.Remove(ClaimTypes.Email);
+        options.ClaimActions.MapCustomJson(ClaimTypes.Email, user =>
+            user.TryGetProperty("email_verified", out var verified) && verified.ValueKind == JsonValueKind.True
+                ? user.GetProperty("email").GetString()
+                : null);
     });
 }
 
 var gitHub = builder.Configuration.GetSection("Authentication:GitHub");
 if (gitHub.Exists())
 {
-    authentication.AddGitHub(options =>
-    {
-        options.ClientId = gitHub["ClientId"]!;
-        options.ClientSecret = gitHub["ClientSecret"]!;
-        // Without this scope GitHub omits private emails and the user would have to type one.
-        options.Scope.Add("user:email");
-    });
+    // AddOAuth with our handler instead of AddGitHub: see VerifiedEmailGitHubHandler.
+    authentication.AddOAuth<GitHubAuthenticationOptions, VerifiedEmailGitHubHandler>(
+        GitHubAuthenticationDefaults.AuthenticationScheme,
+        GitHubAuthenticationDefaults.DisplayName,
+        options =>
+        {
+            options.ClientId = gitHub["ClientId"]!;
+            options.ClientSecret = gitHub["ClientSecret"]!;
+            // Lets the handler read the verified-emails list even when the address is private.
+            options.Scope.Add("user:email");
+            // The profile's public "email" has no verified flag; always use the verified-emails lookup.
+            options.ClaimActions.Remove(ClaimTypes.Email);
+        });
 }
 
 var connectionString = PostgresConnectionString.Normalize(
@@ -67,6 +83,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
+        options.User.RequireUniqueEmail = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<AppDbContext>()
