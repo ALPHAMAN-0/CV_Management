@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t cv-platform .
+      # Without this script the page stays blank; a csproj-only restore once dropped it silently.
+      - name: Image ships the Blazor script
+        run: docker run --rm --entrypoint test cv-platform -f /app/wwwroot/_framework/blazor.web.js
 
   deploy:
     needs: [build-test, docker]

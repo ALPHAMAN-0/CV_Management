@@ -90,3 +90,10 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 
 ### Change recipes
 - *Add another provider (e.g. Microsoft)*: add the package to `Directory.Packages.props` + the project, add an `if (section.Exists()) authentication.AddMicrosoftAccount(...)` block, set its two env vars. The login page lists every registered scheme automatically.
+
+## Incident — blank page in production (fixed)
+- **Symptom:** the live site rendered a white page; `/health` was fine.
+- **Cause:** with prerendering off, the server sends an empty shell and `blazor.web.js` draws everything. In .NET 10 that script ships in an implicit package (`Microsoft.AspNetCore.App.Internal.Assets`) that the SDK adds only when it sees Razor components. The Dockerfile restored from the `.csproj` files alone (a layer-caching trick), then published with `--no-restore`, so the package was never restored and the script returned 404.
+- **Fix:** `dotnet publish` restores again after the full source is copied (the csproj-only restore still warms the cache).
+- **Guard:** the CI `docker` job fails if the image lacks `wwwroot/_framework/blazor.web.js`.
+- **Lesson:** a green `/health` doesn't prove the UI works; check the page in a browser after each deploy.
