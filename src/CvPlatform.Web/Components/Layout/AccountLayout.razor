@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 
 @* For the static sign-in pages: presentational only, because nothing here runs on a circuit. *@
-<MudThemeProvider ObserveSystemDarkModeChange="false" />
+<MudThemeProvider IsDarkMode="DarkMode" ObserveSystemDarkModeChange="false" />
 
 <MudLayout>
     <AppBar />
@@ -11,3 +11,8 @@
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    [CascadingParameter(Name = "DarkMode")]
+    private bool DarkMode { get; set; }
+}

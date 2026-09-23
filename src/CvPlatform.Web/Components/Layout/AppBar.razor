@@ -1,3 +1,7 @@
+@using System.Globalization
+@implements IDisposable
+@inject NavigationManager Navigation
+
 @* Shared by MainLayout (interactive) and AccountLayout (static SSR), so every action is a plain
    link or form that works without a circuit. Only the signed-in menu needs interactivity, and the
    static sign-in pages are only ever seen signed out. *@
@@ -18,6 +22,25 @@
         <MudTextField T="string" name="q" Placeholder="@L["Search"]" aria-label="@L["Search"]"
                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="appbar-search"
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </form>
+
+    @* A POST that sets a cookie (and saves the choice for signed-in users), then reloads the page:
+       a circuit's culture is fixed when it starts, so language needs the reload anyway, and the
+       theme reuses the same simple path. *@
+    <form action="Preferences/Culture" method="post">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <MudButton ButtonType="ButtonType.Submit" name="culture" value="@otherCulture.Name"
+                   Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Translate" aria-label="@L["Language"]">
+            <span class="d-none d-sm-inline">@otherCulture.NativeName</span>
+        </MudButton>
+    </form>
+    <form action="Preferences/Theme" method="post">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <MudIconButton ButtonType="ButtonType.Submit" name="theme" value="@(DarkMode ? Preferences.Light : Preferences.Dark)"
+                       Icon="@(DarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" aria-label="@(DarkMode ? L["Light mode"] : L["Dark mode"])" />
     </form>
 
     <AuthorizeView>
@@ -45,7 +68,31 @@
 </MudAppBar>
 
 @code {
+    private string returnUrl = "";
+
+    // With two languages the switch offers the one that isn't active.
+    private readonly CultureInfo otherCulture = CultureInfo.GetCultureInfo(
+        Preferences.Cultures.First(c => c != CultureInfo.CurrentUICulture.TwoLetterISOLanguageName));
+
     // Set only by MainLayout: the static layout has no drawer to toggle.
     [Parameter]
     public EventCallback OnMenuClick { get; set; }
+
+    [CascadingParameter(Name = "DarkMode")]
+    private bool DarkMode { get; set; }
+
+    protected override void OnInitialized()
+    {
+        returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    // Keeps the forms' return address current as the user navigates inside the circuit.
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        returnUrl = Navigation.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
 }

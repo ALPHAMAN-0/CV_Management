@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider ObserveSystemDarkModeChange="false" />
+<MudThemeProvider IsDarkMode="DarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
 
 <MudLayout>
@@ -23,4 +23,7 @@
 
 @code {
     private bool drawerOpen = true;
+
+    [CascadingParameter(Name = "DarkMode")]
+    private bool DarkMode { get; set; }
 }

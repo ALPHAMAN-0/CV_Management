@@ -1,5 +1,7 @@
+@using System.Globalization
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
 
 <head>
     <meta charset="utf-8" />
@@ -15,7 +17,7 @@
 </head>
 
 <body>
-    <Routes @rendermode="PageRenderMode" />
+    <Routes @rendermode="PageRenderMode" DarkMode="DarkMode" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
@@ -34,4 +36,7 @@
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveServerNoPrerender : null;
+
+    // Read here because only this component sees the HTTP request; Routes passes it on.
+    private bool DarkMode => Preferences.IsDark(HttpContext.Request);
 }

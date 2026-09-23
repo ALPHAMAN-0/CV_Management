@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bengali UI strings. The key is the English text used in the code (L["..."]), so English
+     needs no resource file: a missing key renders the key itself. -->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Access denied" xml:space="preserve">
+    <value>প্রবেশাধিকার নেই</value>
+  </data>
+  <data name="Account" xml:space="preserve">
+    <value>অ্যাকাউন্ট</value>
+  </data>
+  <data name="Account blocked" xml:space="preserve">
+    <value>অ্যাকাউন্ট ব্লক করা হয়েছে</value>
+  </data>
+  <data name="An error occurred while processing your request." xml:space="preserve">
+    <value>আপনার অনুরোধ প্রক্রিয়া করার সময় একটি ত্রুটি ঘটেছে।</value>
+  </data>
+  <data name="An unhandled error has occurred." xml:space="preserve">
+    <value>একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।</value>
+  </data>
+  <data name="Build one profile, then generate a CV tailored to each position." xml:space="preserve">
+    <value>একবার প্রোফাইল তৈরি করুন, তারপর প্রতিটি পদের জন্য উপযোগী সিভি তৈরি করুন।</value>
+  </data>
+  <data name="Continue with {0}" xml:space="preserve">
+    <value>{0} দিয়ে চালিয়ে যান</value>
+  </data>
+  <data name="Dark mode" xml:space="preserve">
+    <value>ডার্ক মোড</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>ত্রুটি</value>
+  </data>
+  <data name="Error from the sign-in provider: {0}" xml:space="preserve">
+    <value>সাইন-ইন প্রদানকারীর ত্রুটি: {0}</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>হোম</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>ভাষা</value>
+  </data>
+  <data name="Light mode" xml:space="preserve">
+    <value>লাইট মোড</value>
+  </data>
+  <data name="Menu" xml:space="preserve">
+    <value>মেনু</value>
+  </data>
+  <data name='No results for "{0}".' xml:space="preserve">
+    <value>"{0}"-এর জন্য কোনো ফলাফল নেই।</value>
+  </data>
+  <data name="No sign-in providers are configured." xml:space="preserve">
+    <value>কোনো সাইন-ইন প্রদানকারী কনফিগার করা নেই।</value>
+  </data>
+  <data name="Not found" xml:space="preserve">
+    <value>পাওয়া যায়নি</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>আবার লোড করুন</value>
+  </data>
+  <data name="Request ID:" xml:space="preserve">
+    <value>অনুরোধ আইডি:</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>অনুসন্ধান</value>
+  </data>
+  <data name="Sign in" xml:space="preserve">
+    <value>সাইন ইন</value>
+  </data>
+  <data name="Sign out" xml:space="preserve">
+    <value>সাইন আউট</value>
+  </data>
+  <data name="Sign-in failed. Please try again." xml:space="preserve">
+    <value>সাইন-ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।</value>
+  </data>
+  <data name="Sign-in information could not be loaded. Please try again." xml:space="preserve">
+    <value>সাইন-ইন তথ্য লোড করা যায়নি। আবার চেষ্টা করুন।</value>
+  </data>
+  <data name="Sorry, the page you are looking for does not exist." xml:space="preserve">
+    <value>দুঃখিত, আপনি যে পৃষ্ঠাটি খুঁজছেন সেটি নেই।</value>
+  </data>
+  <data name="This account has been blocked. Contact an administrator." xml:space="preserve">
+    <value>এই অ্যাকাউন্টটি ব্লক করা হয়েছে। একজন অ্যাডমিনিস্ট্রেটরের সাথে যোগাযোগ করুন।</value>
+  </data>
+  <data name="Type in the search box to find positions and CVs." xml:space="preserve">
+    <value>পদ ও সিভি খুঁজতে অনুসন্ধান বাক্সে লিখুন।</value>
+  </data>
+  <data name="Welcome to CV Platform" xml:space="preserve">
+    <value>সিভি প্ল্যাটফর্মে স্বাগতম</value>
+  </data>
+  <data name="You do not have access to this page." xml:space="preserve">
+    <value>এই পৃষ্ঠায় আপনার প্রবেশাধিকার নেই।</value>
+  </data>
+  <data name="{0} did not share a verified email address. Verify one there, or use another provider." xml:space="preserve">
+    <value>{0} কোনো যাচাইকৃত ইমেইল ঠিকানা শেয়ার করেনি। সেখানে একটি ইমেইল যাচাই করুন, অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>
+  </data>
+</root>

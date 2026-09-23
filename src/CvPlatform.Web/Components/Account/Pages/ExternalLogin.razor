@@ -47,7 +47,7 @@
 
             if (result.Succeeded)
             {
-                RedirectManager.RedirectTo(ReturnUrl);
+                Complete(user);
             }
             else if (result.IsLockedOut)
             {
@@ -97,6 +97,12 @@
 
         await Onboarding.EnsureSetUpAsync(user, ct);
         await SignInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+        Complete(user);
+    }
+
+    private void Complete(ApplicationUser user)
+    {
+        Preferences.RestoreCookies(HttpContext, user);
         RedirectManager.RedirectTo(ReturnUrl);
     }
 
