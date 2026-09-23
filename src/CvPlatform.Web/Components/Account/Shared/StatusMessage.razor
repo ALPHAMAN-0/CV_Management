@@ -1,7 +1,7 @@
 @* Shows the one-shot message a redirect left in a cookie. Every message left this way is an error. *@
 @if (!string.IsNullOrEmpty(message))
 {
-    <div class="alert alert-danger" role="alert">@message</div>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@message</MudAlert>
 }
 
 @code {

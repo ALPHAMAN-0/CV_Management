@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+
+@* For the static sign-in pages: presentational only, because nothing here runs on a circuit. *@
+<MudThemeProvider ObserveSystemDarkModeChange="false" />
+
+<MudLayout>
+    <AppBar />
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="py-8">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>

@@ -1,0 +1,19 @@
+@page "/search"
+
+@* The app-bar search box posts here. Full-text search over positions and CVs arrives in phase 6. *@
+<PageTitle>@L["Search"]</PageTitle>
+
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-2">@L["Search"]</MudText>
+@if (string.IsNullOrWhiteSpace(Q))
+{
+    <MudText>@L["Type in the search box to find positions and CVs."]</MudText>
+}
+else
+{
+    <MudText>@L["No results for \"{0}\".", Q]</MudText>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Q { get; set; }
+}

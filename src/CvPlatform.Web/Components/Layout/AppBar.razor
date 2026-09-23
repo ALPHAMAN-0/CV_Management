@@ -1,0 +1,51 @@
+@* Shared by MainLayout (interactive) and AccountLayout (static SSR), so every action is a plain
+   link or form that works without a circuit. Only the signed-in menu needs interactivity, and the
+   static sign-in pages are only ever seen signed out. *@
+<MudAppBar Elevation="1">
+    @if (OnMenuClick.HasDelegate)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="OnMenuClick" aria-label="@L["Menu"]" />
+    }
+    <MudLink Href="" Color="Color.Inherit" Underline="Underline.None" Class="d-flex align-center gap-2">
+        <MudIcon Icon="@Icons.Material.Filled.Description" />
+        <MudText Typo="Typo.h6" Class="d-none d-sm-flex">CV Platform</MudText>
+    </MudLink>
+
+    <MudSpacer />
+
+    <form action="search" method="get" role="search" class="mx-2" style="max-width: 320px">
+        <MudTextField T="string" name="q" Placeholder="@L["Search"]" aria-label="@L["Search"]"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="appbar-search"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </form>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" aria-label="@L["Account"]"
+                     AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudText Typo="Typo.body2" Class="px-4 py-2">@context.User.Identity?.Name</MudText>
+                <MudDivider />
+                @* Sign-out must be a POST with an antiforgery token, so it is a real form. *@
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.Logout">@L["Sign out"]</MudButton>
+                </form>
+            </MudMenu>
+        </Authorized>
+        <NotAuthorized>
+            <MudButton Href="Account/Login" Variant="Variant.Text" Color="Color.Inherit"
+                       StartIcon="@Icons.Material.Filled.Login" aria-label="@L["Sign in"]">
+                <span class="d-none d-sm-inline">@L["Sign in"]</span>
+            </MudButton>
+        </NotAuthorized>
+    </AuthorizeView>
+</MudAppBar>
+
+@code {
+    // Set only by MainLayout: the static layout has no drawer to toggle.
+    [Parameter]
+    public EventCallback OnMenuClick { get; set; }
+}

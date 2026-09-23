@@ -5,24 +5,28 @@
 @using CvPlatform.Web.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>@L["Sign in"]</PageTitle>
 
-<h1>Log in</h1>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">@L["Sign in"]</MudText>
 <StatusMessage />
 
 @if (providers.Length == 0)
 {
-    <p>No sign-in providers are configured.</p>
+    <MudText>@L["No sign-in providers are configured."]</MudText>
 }
 else
 {
-    <form action="Account/PerformExternalLogin" method="post">
+    <form action="Account/PerformExternalLogin" method="post" class="d-flex flex-column gap-3">
         <AntiforgeryToken />
         <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
         @foreach (var provider in providers)
         {
-            <button type="submit" class="btn btn-primary me-2" name="provider" value="@provider.Name">@provider.DisplayName</button>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       Size="Size.Large" name="provider" value="@provider.Name">
+                @L["Continue with {0}", provider.DisplayName ?? provider.Name]
+            </MudButton>
         }
     </form>
 }
@@ -38,6 +42,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Signed-in users have nothing to do here (and this static page can't run their menu).
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            RedirectManager.RedirectTo(ReturnUrl);
+            return;
+        }
+
         // Drop any half-finished external sign-in so every attempt starts clean.
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         providers = [.. await SignInManager.GetExternalAuthenticationSchemesAsync()];

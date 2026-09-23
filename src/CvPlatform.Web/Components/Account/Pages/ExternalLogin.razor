@@ -25,14 +25,14 @@
     {
         if (RemoteError is not null)
         {
-            Fail($"Error from the sign-in provider: {RemoteError}");
+            Fail(L["Error from the sign-in provider: {0}", RemoteError]);
             return;
         }
 
         var info = await SignInManager.GetExternalLoginInfoAsync();
         if (info is null)
         {
-            Fail("Sign-in information could not be loaded. Please try again.");
+            Fail(L["Sign-in information could not be loaded. Please try again."]);
             return;
         }
 
@@ -55,7 +55,7 @@
             }
             else
             {
-                Fail("Sign-in failed. Please try again.");
+                Fail(L["Sign-in failed. Please try again."]);
             }
             return;
         }
@@ -65,7 +65,7 @@
         var email = info.Principal.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrEmpty(email))
         {
-            Fail($"{info.ProviderDisplayName} did not share a verified email address. Verify one there, or use another provider.");
+            Fail(L["{0} did not share a verified email address. Verify one there, or use another provider.", info.ProviderDisplayName ?? info.LoginProvider]);
             return;
         }
 
