@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CvPlatform.Domain/CvPlatform.Domain.csproj" />
+    <Project Path="src/CvPlatform.Web/CvPlatform.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CvPlatform.Domain.Tests/CvPlatform.Domain.Tests.csproj" />
+    <Project Path="tests/CvPlatform.Web.Tests/CvPlatform.Web.Tests.csproj" />
+  </Folder>
+</Solution>
