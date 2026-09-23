@@ -1,0 +1,21 @@
+# Render Blueprint: New > Blueprint > pick this repo. Creates the web service and its database.
+services:
+  - type: web
+    name: cv-platform
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false # CI deploys through the deploy hook after tests pass
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: cv-platform-db
+          property: connectionString
+
+databases:
+  - name: cv-platform-db
+    plan: free
+    databaseName: cvplatform
+    postgresMajorVersion: "17"

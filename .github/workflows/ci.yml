@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+      # Web tests start Postgres through Testcontainers; the runner has Docker.
+      - run: dotnet test --no-build -c Release
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t cv-platform .
+
+  deploy:
+    needs: [build-test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Trigger Render deploy
+        if: env.DEPLOY_HOOK != ''
+        run: curl --fail --silent --show-error -X POST "$DEPLOY_HOOK"
+      - name: Deploy hook not configured
+        if: env.DEPLOY_HOOK == ''
+        run: echo "::notice::RENDER_DEPLOY_HOOK_URL secret not set; skipping deploy."
