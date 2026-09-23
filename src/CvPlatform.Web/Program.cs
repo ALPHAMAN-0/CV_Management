@@ -17,12 +17,35 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddAuthentication(options =>
+var authentication = builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+});
+authentication.AddIdentityCookies();
+
+// Providers register only when their keys are configured, so local runs and tests need no secrets.
+var google = builder.Configuration.GetSection("Authentication:Google");
+if (google.Exists())
+{
+    authentication.AddGoogle(options =>
     {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
-    .AddIdentityCookies();
+        options.ClientId = google["ClientId"]!;
+        options.ClientSecret = google["ClientSecret"]!;
+    });
+}
+
+var gitHub = builder.Configuration.GetSection("Authentication:GitHub");
+if (gitHub.Exists())
+{
+    authentication.AddGitHub(options =>
+    {
+        options.ClientId = gitHub["ClientId"]!;
+        options.ClientSecret = gitHub["ClientSecret"]!;
+        // Without this scope GitHub omits private emails and the user would have to type one.
+        options.Scope.Add("user:email");
+    });
+}
 
 var connectionString = PostgresConnectionString.Normalize(
     builder.Configuration.GetConnectionString("DefaultConnection")

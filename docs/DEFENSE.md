@@ -67,3 +67,26 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 - *Change the DB host*: set `ConnectionStrings__DefaultConnection` (URI or key=value).
 - *Add a health check*: `builder.Services.AddHealthChecks().Add…()` in `Program.cs`.
 - *Add a package*: add `<PackageVersion>` to `Directory.Packages.props`, then `<PackageReference Include="…" />` (no version) in the project.
+
+## P1 (part 1) — Google + GitHub sign-in
+
+### Decisions
+
+**Packages:** `Microsoft.AspNetCore.Authentication.Google` (Microsoft, MIT) and `AspNet.Security.OAuth.GitHub` (aspnet-contrib, Apache-2.0, maintained; GitHub has no Microsoft package).
+
+**Providers register only when configured** (`Program.cs`): a missing `Authentication:Google` section simply skips `AddGoogle`. Local runs and CI tests need no secrets.
+- Secrets: Render environment variables (`Authentication__Google__ClientId` …, `__` = `:`), `dotnet user-secrets` locally. Never in `appsettings.json` or git.
+
+**Provider-verified email creates the account directly** (`ExternalLogin.razor`, `SignInWithProviderEmailAsync`)
+- Why: the template asks new external users to re-type their email and then confirm it by email — pointless (the provider already verified it) and a dead end (we send no emails). CLAUDE.md §10.
+- Same email from Google and GitHub → the second provider is *linked* to the existing account (one person, one profile).
+- A locked-out (blocked) user can't bypass the block by linking another provider.
+- No email from the provider (GitHub account with a private email and no `user:email` grant) → the template's form still asks for one.
+- GitHub requests the `user:email` scope so private emails are still returned.
+
+### Likely questions
+- *Where do OAuth redirect URIs come from?* — `/signin-google` and `/signin-github` are the handlers' default `CallbackPath`. The host part comes from the request; behind Render's proxy `UseForwardedHeaders` makes it `https://…`, which must match the URIs registered at Google/GitHub exactly.
+- *Why is linking by email safe?* — both providers only return verified emails; an attacker would have to control the victim's email at Google or GitHub.
+
+### Change recipes
+- *Add another provider (e.g. Microsoft)*: add the package to `Directory.Packages.props` + the project, add an `if (section.Exists()) authentication.AddMicrosoftAccount(...)` block, set its two env vars. The login page lists every registered scheme automatically.

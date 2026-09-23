@@ -130,11 +130,50 @@
             return;
         }
 
-        // If the user does not have an account, then ask the user to create an account.
-        if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+        // The provider has verified this email, so create (or link) the account without asking.
+        var providerEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+        if (!string.IsNullOrEmpty(providerEmail))
         {
-            Input.Email = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+            await SignInWithProviderEmailAsync(externalLoginInfo, providerEmail);
         }
+
+        // No email from the provider: fall through to the form so the user can type one.
+    }
+
+    private async Task SignInWithProviderEmailAsync(ExternalLoginInfo info, string email)
+    {
+        var user = await UserManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = CreateUser();
+            await UserStore.SetUserNameAsync(user, email, CancellationToken.None);
+            await GetEmailStore().SetEmailAsync(user, email, CancellationToken.None);
+            user.EmailConfirmed = true;
+
+            var created = await UserManager.CreateAsync(user);
+            if (!created.Succeeded)
+            {
+                message = $"Error: {string.Join(",", created.Errors.Select(error => error.Description))}";
+                return;
+            }
+        }
+        else if (await UserManager.IsLockedOutAsync(user))
+        {
+            // Blocked users must not get back in by linking a second provider.
+            RedirectManager.RedirectTo("Account/Lockout");
+            return;
+        }
+
+        // Same email from Google and GitHub means the same person: one account, two logins.
+        var linked = await UserManager.AddLoginAsync(user, info);
+        if (!linked.Succeeded)
+        {
+            message = $"Error: {string.Join(",", linked.Errors.Select(error => error.Description))}";
+            return;
+        }
+
+        await SignInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+        RedirectManager.RedirectTo(ReturnUrl);
     }
 
     private async Task OnValidSubmitAsync()
