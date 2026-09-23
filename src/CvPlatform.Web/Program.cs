@@ -23,6 +23,7 @@ var authentication = builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 });
 authentication.AddIdentityCookies();
+builder.Services.AddAuthorization();
 
 // Providers register only when their keys are configured, so local runs and tests need no secrets.
 var google = builder.Configuration.GetSection("Authentication:Google");
@@ -112,6 +113,12 @@ else
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Explicit on purpose: left implicit, WebApplication inserts authentication before all of our
+// middleware, so OAuth callbacks ran before UseForwardedHeaders, saw http:// behind the proxy
+// and sent a redirect_uri the provider rejected.
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 
