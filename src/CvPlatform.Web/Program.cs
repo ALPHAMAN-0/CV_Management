@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using CvPlatform.Web.Components;
 using CvPlatform.Web.Components.Account;
 using CvPlatform.Web.Data;
+using CvPlatform.Web.Features.Account;
 using CvPlatform.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,9 +87,13 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.User.RequireUniqueEmail = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
+    // Before AddEntityFrameworkStores: that call picks the role-aware stores only if roles are set.
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<UserOnboarding>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -115,6 +120,15 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+
+    var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    foreach (var role in AppRoles.All)
+    {
+        if (!await roles.RoleExistsAsync(role))
+        {
+            await roles.CreateAsync(new IdentityRole(role));
+        }
+    }
 }
 
 app.UseForwardedHeaders();

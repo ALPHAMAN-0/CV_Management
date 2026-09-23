@@ -7,8 +7,10 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using CvPlatform.Web.Data
+@using CvPlatform.Web.Features.Account
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserOnboarding Onboarding
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
 @inject IEmailSender<ApplicationUser> EmailSender
@@ -108,6 +110,13 @@
             return;
         }
 
+        // Set up returning users before the cookie is issued, so it carries their roles.
+        var existing = await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
+        if (existing is not null)
+        {
+            await Onboarding.EnsureSetUpAsync(existing, HttpContext.RequestAborted);
+        }
+
         // Sign in the user with this external login provider if the user already has a login.
         var result = await SignInManager.ExternalLoginSignInAsync(
             externalLoginInfo.LoginProvider,
@@ -172,6 +181,7 @@
             return;
         }
 
+        await Onboarding.EnsureSetUpAsync(user, HttpContext.RequestAborted);
         await SignInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
         RedirectManager.RedirectTo(ReturnUrl);
     }
