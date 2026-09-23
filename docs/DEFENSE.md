@@ -86,6 +86,7 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 
 **`ExternalLogin` is redirect-only** (`Components/Account/Pages/ExternalLogin.razor`)
 - Known login → set up → sign in. New login → find the user by (verified) email or create one with `EmailConfirmed = true` → link → set up → sign in.
+- The provider's error text (`?RemoteError=`) is logged, never shown: anyone can craft that URL, and the status cookie is `SameSite=Lax` so it survives the redirect back from Google/GitHub. Identity's own error texts are logged too; users see a localized message.
 - No verified email → back to Login with an error. The template's "type an email" form is gone: that address would be unverified, and it was the only path that needed email confirmation. Every account therefore has a confirmed email and `RequireConfirmedAccount` never blocks an external user (CLAUDE.md §10).
 - A blocked (locked-out) user can't get back in by linking a second provider.
 
@@ -103,22 +104,25 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 - Kept `IdentitySchemaVersions.Version3` so the model (and next migration) doesn't drop the passkey table.
 
 **Static vs interactive pages**
-- Only `Login` and `ExternalLogin` stay static SSR (`[ExcludeFromInteractiveRouting]`): they write cookies, which needs the HTTP response. They use `AccountLayout`.
+- Only `Login` and `ExternalLogin` stay static SSR (`[ExcludeFromInteractiveRouting]`): they write cookies, which needs the HTTP response. They use `AccountLayout`: app bar, no drawer (a drawer needs a circuit to toggle, and an anonymous visitor's only destination, Home, is the logo link).
 - Everything else, including `AccessDenied` and `Lockout`, is interactive (`MainLayout`).
 - `AppBar` is shared by both layouts, so every action in it is a plain link or form that works without a circuit: search is a GET form, language/theme are POST forms, sign-out is the Identity POST form. Only the signed-in `MudMenu` needs interactivity, and signed-in users never see the static pages (Login redirects them away).
 
 **Language and theme** (`Infrastructure/Preferences.cs`)
 - Both are cookies, because only the first HTTP request of a page load can read them (`App.razor`); the circuit can't see `HttpContext` (CLAUDE.md §3.7). `UseRequestLocalization` reads the culture cookie; `App.razor` reads the theme cookie and passes `DarkMode` through `Routes` as a cascading value.
+- `App.razor` also renders a `MudThemeProvider` itself, so the very first response already has the theme's colours: no white flash in dark mode while the circuit connects, and static pages need no provider of their own.
 - Switching = `POST /Preferences/Culture|Theme` with an antiforgery token (form binding makes minimal APIs require it) → set cookie → save `PreferredCulture`/`PreferredTheme` for signed-in users → redirect back (local URLs only) → the page reloads.
 - The reload is required for culture: a circuit's culture is fixed when it starts. The theme reuses the same path: one mechanism, no JavaScript, works on static pages too. Cost: one reload on a rare action.
 - At sign-in `Preferences.RestoreCookies` copies the saved choices into the cookies, so they follow the user to other browsers.
 - Rejected: GET endpoints (a link on another site could change a signed-in user's saved settings); flipping the theme in place with JS cookie writes (a second code path for static pages).
 
-**Strings** — every UI string is `L["English text"]` (`IStringLocalizer<SharedResource>` injected in the root `_Imports.razor`). Only `Resources/SharedResource.bn.resx` exists: a missing key renders the key itself, so English needs no file. MudBlazor's built-in strings (pager "Rows per page") stay English until the P7 i18n pass (`MudLocalizer`).
+**Strings** — every UI string is `L["English text"]` (`IStringLocalizer<SharedResource>` injected in the root `_Imports.razor`). Only `Resources/SharedResource.bn.resx` exists: a missing key renders the key itself, so English needs no file.
+- MudBlazor's built-in texts (pager, column menu, checkbox labels) go through `Infrastructure/SharedMudLocalizer.cs`, a one-line `MudLocalizer` that looks MudBlazor's keys (`MudDataGridPager_RowsPerPage`, …) up in the same resx. MudBlazor keeps its own English; a missing Bengali key falls back to it.
 
 **Grid + toolbar pattern** (`Features/Admin/Users.razor`, `UserAdminService.cs`)
 - `MudDataGrid` with `ServerData`: paging, sorting and filtering run in the database. Each load is **two SQL statements** — a `COUNT` and one page query whose role flags are `EXISTS` subqueries (no N+1; checked in the SQL log).
 - Only whitelisted columns sort (anything else → newest first), then `ThenBy(Id)` so rows with equal values (e.g. users backfilled with the same `CreatedAt`) page stably.
+- A new search term goes back to page 1; otherwise the grid would ask for the old page of the new result set and could show "No users found" while matches exist.
 - Checkbox selection, actions in a toolbar above the grid (never in rows), `Breakpoint.None` so phones get a scrollable table, not cards.
 - Rows are a `record`, so re-fetched rows equal the selected ones and selection survives paging.
 - The service checks the Administrator role itself (the page attribute is not the security boundary).
@@ -146,6 +150,9 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 - **Cause:** `Program.cs` never called `UseAuthentication`, so `WebApplication` inserted it automatically — *before* all of our middleware, including `UseForwardedHeaders`. OAuth callbacks are handled inside the authentication middleware, so they saw the proxy's plain-http request.
 - **Fix:** explicit `app.UseAuthentication(); app.UseAuthorization();` after `UseHttpsRedirection`.
 - **Guard:** `UserAdminTests.Anonymous_request_behind_a_tls_proxy_is_redirected_to_https_login` fails on the old pipeline (checked by reverting the fix).
+
+## Review — Phase 1 (multi-agent, adversarially verified)
+Four reviewers (correctness, security, project rules, i18n/UX) read the whole diff; a skeptic per dimension tried to refute each finding. 11 survived, all low/medium, all fixed before pushing: search not resetting the page; provider error text reflected on the sign-in page; MudBlazor texts and Identity errors not localized; three screen-reader labels; dark-mode flash before the circuit connects; the sign-in page's missing drawer (documented as an exception above). Six findings were refuted (e.g. "Candidate is re-added on every sign-in": nothing can remove it until P7).
 
 ## Incident — unverified GitHub email trusted (fixed)
 - **Cause:** `AspNet.Security.OAuth.GitHub` picks the primary address without checking `verified`; with link-by-email that allowed account takeover and a race for the bootstrap admin role.

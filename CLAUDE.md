@@ -139,7 +139,7 @@ Indexes beyond PKs/uniques: `Position(UpdatedAt DESC)`, `Cv(PositionId, Status)`
 ## 11. UI rules (graded — each violation costs 20%)
 - Positions, CVs, attributes, users, projects: **tables only** — no tiles, cards or galleries, including on mobile (disable the grid's stacked/card breakpoint; horizontal scroll + hide secondary columns).
 - **No buttons in table rows.** Checkbox selection + a toolbar above the grid (Edit/Duplicate enabled for exactly one selected row, Delete for ≥1). Row click opens details (a grid with no detail page yet, e.g. Users, selects on row click). Links inside cells are fine. Outside tables prefer toolbar + selection; hover- or long-press-revealed actions are acceptable; never static per-item buttons.
-- Every page: app bar with logo, full-text search box, language switch, theme toggle, user menu; role-aware nav drawer; breadcrumbs on detail pages.
+- Every page: app bar with logo, full-text search box, language switch, theme toggle, user menu; role-aware nav drawer; breadcrumbs on detail pages. (Exception: the static sign-in pages have the app bar but no drawer — nothing there can toggle it, and the logo links Home.)
 - One shared "missing value" style (red), used everywhere.
 - Attribute picker (shared by profile, template and rule builder): server-side prefix lookup, "Recently used", category filter.
 - Tag input: MudAutocomplete (server prefix search, new values allowed) + chips; tags normalized.
