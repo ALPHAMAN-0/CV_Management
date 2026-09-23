@@ -90,12 +90,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     // Before AddEntityFrameworkStores: that call picks the role-aware stores only if roles are set.
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+    .AddSignInManager();
 
 builder.Services.AddScoped<UserOnboarding>();
-
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 builder.Services.AddDataProtection()
     .SetApplicationName("CvPlatform")

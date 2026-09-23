@@ -1,27 +1,20 @@
-﻿@if (!string.IsNullOrEmpty(DisplayMessage))
+@* Shows the one-shot message a redirect left in a cookie. Every message left this way is an error. *@
+@if (!string.IsNullOrEmpty(message))
 {
-    var statusMessageClass = DisplayMessage.StartsWith("Error") ? "danger" : "success";
-    <div class="alert alert-@statusMessageClass" role="alert">
-        @DisplayMessage
-    </div>
+    <div class="alert alert-danger" role="alert">@message</div>
 }
 
 @code {
-    private string? messageFromCookie;
-
-    [Parameter]
-    public string? Message { get; set; }
+    private string? message;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    private string? DisplayMessage => Message ?? messageFromCookie;
-
     protected override void OnInitialized()
     {
-        messageFromCookie = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
+        message = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
 
-        if (messageFromCookie is not null)
+        if (message is not null)
         {
             HttpContext.Response.Cookies.Delete(IdentityRedirectManager.StatusCookieName);
         }

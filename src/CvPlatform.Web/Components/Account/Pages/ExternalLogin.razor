@@ -1,62 +1,18 @@
-﻿@page "/Account/ExternalLogin"
+@page "/Account/ExternalLogin"
 
-@using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
-@using System.Text
-@using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
 @using CvPlatform.Web.Data
 @using CvPlatform.Web.Features.Account
 
 @inject SignInManager<ApplicationUser> SignInManager
-@inject UserOnboarding Onboarding
 @inject UserManager<ApplicationUser> UserManager
-@inject IUserStore<ApplicationUser> UserStore
-@inject IEmailSender<ApplicationUser> EmailSender
-@inject NavigationManager NavigationManager
+@inject UserOnboarding Onboarding
 @inject IdentityRedirectManager RedirectManager
-@inject ILogger<ExternalLogin> Logger
-
-<PageTitle>Register</PageTitle>
-
-<StatusMessage Message="@message" />
-<h1>Register</h1>
-<h2>Associate your @ProviderDisplayName account.</h2>
-<hr />
-
-<div  class="alert alert-info">
-    You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
-    Please enter an email address for this site below and click the Register button to finish
-    logging in.
-</div>
-
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email." />
-                <label for="Input.Email" class="form-label">Email</label>
-                <ValidationMessage For="() => Input.Email" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-    </div>
-</div>
 
 @code {
-    public const string LoginCallbackAction = "LoginCallback";
-
-    private string? message;
-    private ExternalLoginInfo? externalLoginInfo;
-
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? RemoteError { get; set; }
@@ -64,105 +20,63 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    [SupplyParameterFromQuery]
-    private string? Action { get; set; }
-
-    private string? ProviderDisplayName => externalLoginInfo?.ProviderDisplayName;
-
+    // Finishes the provider's callback. Every path ends in a redirect, so the page has no markup.
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
-
         if (RemoteError is not null)
         {
-            RedirectManager.RedirectToWithStatus("Account/Login", $"Error from external provider: {RemoteError}", HttpContext);
+            Fail($"Error from the sign-in provider: {RemoteError}");
             return;
         }
 
         var info = await SignInManager.GetExternalLoginInfoAsync();
         if (info is null)
         {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+            Fail("Sign-in information could not be loaded. Please try again.");
             return;
         }
 
-        externalLoginInfo = info;
-
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        var ct = HttpContext.RequestAborted;
+        var user = await UserManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+        if (user is not null)
         {
-            if (Action == LoginCallbackAction)
+            // Before the cookie is issued, so the cookie carries the user's roles.
+            await Onboarding.EnsureSetUpAsync(user, ct);
+            var result = await SignInManager.ExternalLoginSignInAsync(
+                info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+
+            if (result.Succeeded)
             {
-                await OnLoginCallbackAsync();
-                return;
+                RedirectManager.RedirectTo(ReturnUrl);
             }
-
-            // We should only reach this page via the login callback, so redirect back to
-            // the login page if we get here some other way.
-            RedirectManager.RedirectTo("Account/Login");
-        }
-    }
-
-    private async Task OnLoginCallbackAsync()
-    {
-        if (externalLoginInfo is null)
-        {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+            else if (result.IsLockedOut)
+            {
+                RedirectManager.RedirectTo("Account/Lockout");
+            }
+            else
+            {
+                Fail("Sign-in failed. Please try again.");
+            }
             return;
         }
 
-        // Set up returning users before the cookie is issued, so it carries their roles.
-        var existing = await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
-        if (existing is not null)
+        // Only provider-verified addresses reach this point (see Program.cs), so the email
+        // identifies the person. Without one we can't create or link an account safely.
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(email))
         {
-            await Onboarding.EnsureSetUpAsync(existing, HttpContext.RequestAborted);
-        }
-
-        // Sign in the user with this external login provider if the user already has a login.
-        var result = await SignInManager.ExternalLoginSignInAsync(
-            externalLoginInfo.LoginProvider,
-            externalLoginInfo.ProviderKey,
-            isPersistent: false,
-            bypassTwoFactor: true);
-
-        if (result.Succeeded)
-        {
-            Logger.LogInformation(
-                "{Name} logged in with {LoginProvider} provider.",
-                externalLoginInfo.Principal.Identity?.Name,
-                externalLoginInfo.LoginProvider);
-            RedirectManager.RedirectTo(ReturnUrl);
-            return;
-        }
-        else if (result.IsLockedOut)
-        {
-            RedirectManager.RedirectTo("Account/Lockout");
+            Fail($"{info.ProviderDisplayName} did not share a verified email address. Verify one there, or use another provider.");
             return;
         }
 
-        // The provider has verified this email, so create (or link) the account without asking.
-        var providerEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
-        if (!string.IsNullOrEmpty(providerEmail))
-        {
-            await SignInWithProviderEmailAsync(externalLoginInfo, providerEmail);
-        }
-
-        // No email from the provider: fall through to the form so the user can type one.
-    }
-
-    private async Task SignInWithProviderEmailAsync(ExternalLoginInfo info, string email)
-    {
-        var user = await UserManager.FindByEmailAsync(email);
+        user = await UserManager.FindByEmailAsync(email);
         if (user is null)
         {
-            user = CreateUser();
-            await UserStore.SetUserNameAsync(user, email, CancellationToken.None);
-            await GetEmailStore().SetEmailAsync(user, email, CancellationToken.None);
-            user.EmailConfirmed = true;
-
+            user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
             var created = await UserManager.CreateAsync(user);
             if (!created.Succeeded)
             {
-                message = $"Error: {string.Join(",", created.Errors.Select(error => error.Description))}";
+                Fail(Describe(created));
                 return;
             }
         }
@@ -173,94 +87,22 @@
             return;
         }
 
-        // Same email from Google and GitHub means the same person: one account, two logins.
+        // The same verified email from Google and GitHub is the same person: one account, two logins.
         var linked = await UserManager.AddLoginAsync(user, info);
         if (!linked.Succeeded)
         {
-            message = $"Error: {string.Join(",", linked.Errors.Select(error => error.Description))}";
+            Fail(Describe(linked));
             return;
         }
 
-        await Onboarding.EnsureSetUpAsync(user, HttpContext.RequestAborted);
+        await Onboarding.EnsureSetUpAsync(user, ct);
         await SignInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
         RedirectManager.RedirectTo(ReturnUrl);
     }
 
-    private async Task OnValidSubmitAsync()
-    {
-        if (externalLoginInfo is null)
-        {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information during confirmation.", HttpContext);
-            return;
-        }
+    private void Fail(string message) =>
+        RedirectManager.RedirectToWithStatus("Account/Login", message, HttpContext);
 
-        var emailStore = GetEmailStore();
-        var user = CreateUser();
-
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-
-        var result = await UserManager.CreateAsync(user);
-        if (result.Succeeded)
-        {
-            result = await UserManager.AddLoginAsync(user, externalLoginInfo);
-            if (result.Succeeded)
-            {
-                Logger.LogInformation("User created an account using {Name} provider.", externalLoginInfo.LoginProvider);
-
-                var userId = await UserManager.GetUserIdAsync(user);
-                var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-
-                var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-                    NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-                    new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
-                await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-                // If account confirmation is required, we need to show the link if we don't have a real email sender
-                if (UserManager.Options.SignIn.RequireConfirmedAccount)
-                {
-                    RedirectManager.RedirectTo("Account/RegisterConfirmation", new() { ["email"] = Input.Email });
-                }
-                else
-                {
-                    await SignInManager.SignInAsync(user, isPersistent: false, externalLoginInfo.LoginProvider);
-                    RedirectManager.RedirectTo(ReturnUrl);
-                }
-            }
-        }
-        else
-        {
-            message = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
-        }
-    }
-
-    private ApplicationUser CreateUser()
-    {
-        try
-        {
-            return Activator.CreateInstance<ApplicationUser>();
-        }
-        catch
-        {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor");
-        }
-    }
-
-    private IUserEmailStore<ApplicationUser> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-        return (IUserEmailStore<ApplicationUser>)UserStore;
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
-    }
+    private static string Describe(IdentityResult result) =>
+        string.Join(" ", result.Errors.Select(error => error.Description));
 }
