@@ -53,20 +53,80 @@
   <data name="Error" xml:space="preserve">
     <value>ত্রুটি</value>
   </data>
-  <data name="Error from the sign-in provider: {0}" xml:space="preserve">
-    <value>সাইন-ইন প্রদানকারীর ত্রুটি: {0}</value>
-  </data>
   <data name="Home" xml:space="preserve">
     <value>হোম</value>
-  </data>
-  <data name="Language" xml:space="preserve">
-    <value>ভাষা</value>
   </data>
   <data name="Light mode" xml:space="preserve">
     <value>লাইট মোড</value>
   </data>
   <data name="Menu" xml:space="preserve">
     <value>মেনু</value>
+  </data>
+  <data name="MudDataGrid_Columns" xml:space="preserve">
+    <value>কলাম</value>
+  </data>
+  <data name="MudDataGrid_Filter" xml:space="preserve">
+    <value>ফিল্টার</value>
+  </data>
+  <data name="MudDataGrid_Group" xml:space="preserve">
+    <value>গ্রুপ</value>
+  </data>
+  <data name="MudDataGrid_Hide" xml:space="preserve">
+    <value>লুকান</value>
+  </data>
+  <data name="MudDataGrid_HideAll" xml:space="preserve">
+    <value>সব লুকান</value>
+  </data>
+  <data name="MudDataGrid_Loading" xml:space="preserve">
+    <value>লোড হচ্ছে…</value>
+  </data>
+  <data name="MudDataGrid_RefreshData" xml:space="preserve">
+    <value>ডেটা রিফ্রেশ করুন</value>
+  </data>
+  <data name="MudDataGrid_SelectAllRows" xml:space="preserve">
+    <value>সব সারি নির্বাচন করুন</value>
+  </data>
+  <data name="MudDataGrid_SelectRow" xml:space="preserve">
+    <value>সারি নির্বাচন করুন</value>
+  </data>
+  <data name="MudDataGrid_ShowAll" xml:space="preserve">
+    <value>সব দেখান</value>
+  </data>
+  <data name="MudDataGrid_ShowColumnOptions" xml:space="preserve">
+    <value>কলামের বিকল্প</value>
+  </data>
+  <data name="MudDataGrid_Sort" xml:space="preserve">
+    <value>সাজান</value>
+  </data>
+  <data name="MudDataGrid_Ungroup" xml:space="preserve">
+    <value>গ্রুপ বাতিল করুন</value>
+  </data>
+  <data name="MudDataGrid_Unsort" xml:space="preserve">
+    <value>সাজানো বাতিল করুন</value>
+  </data>
+  <data name="MudDataGridPager_AllItems" xml:space="preserve">
+    <value>সব</value>
+  </data>
+  <data name="MudDataGridPager_FirstPage" xml:space="preserve">
+    <value>প্রথম পৃষ্ঠা</value>
+  </data>
+  <data name="MudDataGridPager_InfoFormat" xml:space="preserve">
+    <value>{2}-এর মধ্যে {0}-{1}</value>
+  </data>
+  <data name="MudDataGridPager_LastPage" xml:space="preserve">
+    <value>শেষ পৃষ্ঠা</value>
+  </data>
+  <data name="MudDataGridPager_NextPage" xml:space="preserve">
+    <value>পরের পৃষ্ঠা</value>
+  </data>
+  <data name="MudDataGridPager_PreviousPage" xml:space="preserve">
+    <value>আগের পৃষ্ঠা</value>
+  </data>
+  <data name="MudDataGridPager_RowsPerPage" xml:space="preserve">
+    <value>প্রতি পৃষ্ঠায় সারি:</value>
+  </data>
+  <data name="MudInput_Clear" xml:space="preserve">
+    <value>মুছুন</value>
   </data>
   <data name='No results for "{0}".' xml:space="preserve">
     <value>"{0}"-এর জন্য কোনো ফলাফল নেই।</value>
@@ -110,6 +170,9 @@
   <data name="Sorry, the page you are looking for does not exist." xml:space="preserve">
     <value>দুঃখিত, আপনি যে পৃষ্ঠাটি খুঁজছেন সেটি নেই।</value>
   </data>
+  <data name="The sign-in provider reported an error. Please try again." xml:space="preserve">
+    <value>সাইন-ইন প্রদানকারী একটি ত্রুটি জানিয়েছে। আবার চেষ্টা করুন।</value>
+  </data>
   <data name="This account has been blocked. Contact an administrator." xml:space="preserve">
     <value>এই অ্যাকাউন্টটি ব্লক করা হয়েছে। একজন অ্যাডমিনিস্ট্রেটরের সাথে যোগাযোগ করুন।</value>
   </data>
@@ -124,6 +187,9 @@
   </data>
   <data name="You do not have access to this page." xml:space="preserve">
     <value>এই পৃষ্ঠায় আপনার প্রবেশাধিকার নেই।</value>
+  </data>
+  <data name="Your account could not be set up. Please try again or use another provider." xml:space="preserve">
+    <value>আপনার অ্যাকাউন্ট তৈরি করা যায়নি। আবার চেষ্টা করুন অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>
   </data>
   <data name="{0} did not share a verified email address. Verify one there, or use another provider." xml:space="preserve">
     <value>{0} কোনো যাচাইকৃত ইমেইল ঠিকানা শেয়ার করেনি। সেখানে একটি ইমেইল যাচাই করুন, অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>

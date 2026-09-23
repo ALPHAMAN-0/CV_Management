@@ -17,6 +17,9 @@
 </head>
 
 <body>
+    @* Rendered here too, in the first HTTP response, so the page has its colours before the circuit
+       connects (no white flash in dark mode) and static pages need no provider of their own. *@
+    <MudThemeProvider IsDarkMode="DarkMode" ObserveSystemDarkModeChange="false" />
     <Routes @rendermode="PageRenderMode" DarkMode="DarkMode" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>

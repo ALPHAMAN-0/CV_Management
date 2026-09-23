@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 using MudBlazor.Services;
 using CvPlatform.Web.Components;
 using CvPlatform.Web.Components.Account;
@@ -20,6 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
+builder.Services.AddTransient<MudLocalizer, SharedMudLocalizer>();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
@@ -96,6 +98,8 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
         options.User.RequireUniqueEmail = true;
+        // User names are provider-verified emails, which may contain characters the default list rejects.
+        options.User.AllowedUserNameCharacters = "";
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     // Before AddEntityFrameworkStores: that call picks the role-aware stores only if roles are set.

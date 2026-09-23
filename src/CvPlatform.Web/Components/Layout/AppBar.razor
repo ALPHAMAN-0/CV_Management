@@ -11,7 +11,7 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        OnClick="OnMenuClick" aria-label="@L["Menu"]" />
     }
-    <MudLink Href="" Color="Color.Inherit" Underline="Underline.None" Class="d-flex align-center gap-2">
+    <MudLink Href="" Color="Color.Inherit" Underline="Underline.None" Class="d-flex align-center gap-2" aria-label="CV Platform">
         <MudIcon Icon="@Icons.Material.Filled.Description" />
         <MudText Typo="Typo.h6" Class="d-none d-sm-flex">CV Platform</MudText>
     </MudLink>
@@ -31,8 +31,8 @@
         <AntiforgeryToken />
         <input type="hidden" name="returnUrl" value="@returnUrl" />
         <MudButton ButtonType="ButtonType.Submit" name="culture" value="@otherCulture.Name"
-                   Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Translate" aria-label="@L["Language"]">
-            <span class="d-none d-sm-inline">@otherCulture.NativeName</span>
+                   Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Translate" aria-label="@otherCulture.NativeName">
+            <span class="d-none d-sm-inline" lang="@otherCulture.Name">@otherCulture.NativeName</span>
         </MudButton>
     </form>
     <form action="Preferences/Theme" method="post">
@@ -45,7 +45,7 @@
 
     <AuthorizeView>
         <Authorized>
-            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" aria-label="@L["Account"]"
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AriaLabel="@L["Account"]"
                      AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                 <MudText Typo="Typo.body2" Class="px-4 py-2">@context.User.Identity?.Name</MudText>
                 <MudDivider />

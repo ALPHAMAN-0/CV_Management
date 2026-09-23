@@ -9,6 +9,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject UserOnboarding Onboarding
 @inject IdentityRedirectManager RedirectManager
+@inject ILogger<ExternalLogin> Logger
 
 @code {
     [CascadingParameter]
@@ -23,9 +24,11 @@
     // Finishes the provider's callback. Every path ends in a redirect, so the page has no markup.
     protected override async Task OnInitializedAsync()
     {
+        // Anyone can craft this URL, so the provider's text is logged, never shown on our page.
         if (RemoteError is not null)
         {
-            Fail(L["Error from the sign-in provider: {0}", RemoteError]);
+            Logger.LogWarning("The sign-in provider returned an error: {RemoteError}", RemoteError);
+            Fail(L["The sign-in provider reported an error. Please try again."]);
             return;
         }
 
@@ -76,7 +79,7 @@
             var created = await UserManager.CreateAsync(user);
             if (!created.Succeeded)
             {
-                Fail(Describe(created));
+                FailSetUp(created);
                 return;
             }
         }
@@ -91,7 +94,7 @@
         var linked = await UserManager.AddLoginAsync(user, info);
         if (!linked.Succeeded)
         {
-            Fail(Describe(linked));
+            FailSetUp(linked);
             return;
         }
 
@@ -109,6 +112,11 @@
     private void Fail(string message) =>
         RedirectManager.RedirectToWithStatus("Account/Login", message, HttpContext);
 
-    private static string Describe(IdentityResult result) =>
-        string.Join(" ", result.Errors.Select(error => error.Description));
+    // Identity's error texts are English-only and technical: log them, show a localized message.
+    private void FailSetUp(IdentityResult result)
+    {
+        Logger.LogWarning("Setting up the account failed: {Errors}",
+            string.Join(" ", result.Errors.Select(error => error.Description)));
+        Fail(L["Your account could not be set up. Please try again or use another provider."]);
+    }
 }

@@ -1,8 +1,8 @@
 @inherits LayoutComponentBase
 
-@* For the static sign-in pages: presentational only, because nothing here runs on a circuit. *@
-<MudThemeProvider IsDarkMode="DarkMode" ObserveSystemDarkModeChange="false" />
-
+@* For the static sign-in pages: presentational only, because nothing here runs on a circuit.
+   The theme comes from the provider App.razor renders. No drawer: it would need a circuit to
+   toggle, and an anonymous visitor's only destination, Home, is the logo link. *@
 <MudLayout>
     <AppBar />
     <MudMainContent>
@@ -11,8 +11,3 @@
         </MudContainer>
     </MudMainContent>
 </MudLayout>
-
-@code {
-    [CascadingParameter(Name = "DarkMode")]
-    private bool DarkMode { get; set; }
-}

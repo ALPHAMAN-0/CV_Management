@@ -19,7 +19,7 @@
             <MudText Typo="Typo.body2" Class="mr-4">@L["{0} selected", selected.Count]</MudText>
         }
         <MudTextField T="string" @bind-Value="search" Placeholder="@L["Search by email"]"
-                      DebounceInterval="300" OnDebounceIntervalElapsed="@(_ => grid.ReloadServerData())"
+                      DebounceInterval="300" OnDebounceIntervalElapsed="SearchAsync"
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Class="mt-0" Style="max-width: 280px" />
     </ToolBarContent>
@@ -52,4 +52,16 @@
 
     private Task<GridData<UserRow>> LoadAsync(GridState<UserRow> state, CancellationToken ct) =>
         UserAdmin.ListAsync(search, state, ct);
+
+    // A new filter starts on the first page, or it could land past the last matching row.
+    // Changing the page reloads the grid by itself; staying on page 1 needs an explicit reload.
+    private Task SearchAsync(string _)
+    {
+        if (grid.CurrentPage == 0)
+        {
+            return grid.ReloadServerData();
+        }
+        grid.NavigateTo(Page.First);
+        return Task.CompletedTask;
+    }
 }
