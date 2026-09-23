@@ -22,6 +22,15 @@ dotnet test    # integration tests start their own Postgres container (Docker re
 2. Copy the service's **Deploy Hook** URL into the GitHub secret `RENDER_DEPLOY_HOOK_URL`.
 3. Every green build on `main` deploys.
 
+## Configuration
+Set these as environment variables on Render (`__` stands for `:`), or with `dotnet user-secrets set "<key with :>" <value> --project src/CvPlatform.Web` locally. Never commit them.
+
+| Variable | Purpose |
+|---|---|
+| `Authentication__Google__ClientId` / `__ClientSecret` | Google sign-in (callback `https://<host>/signin-google`) |
+| `Authentication__GitHub__ClientId` / `__ClientSecret` | GitHub sign-in (callback `https://<host>/signin-github`) |
+| `Admin__BootstrapEmails__0` | Email that becomes Administrator on sign-in **while no administrator exists** |
+
 ## Docs
 - [`CLAUDE.md`](CLAUDE.md) — architecture rules and phase plan
 - [`docs/DEFENSE.md`](docs/DEFENSE.md) — decisions, trade-offs, reviewer Q&A

@@ -68,28 +68,89 @@ Per phase: each decision (what, why, rejected alternatives, trade-off), likely r
 - *Add a health check*: `builder.Services.AddHealthChecks().Add…()` in `Program.cs`.
 - *Add a package*: add `<PackageVersion>` to `Directory.Packages.props`, then `<PackageReference Include="…" />` (no version) in the project.
 
-## P1 (part 1) — Google + GitHub sign-in
+## P1 — Identity & app shell
 
 ### Decisions
 
-**Packages:** `Microsoft.AspNetCore.Authentication.Google` (Microsoft, MIT) and `AspNet.Security.OAuth.GitHub` (aspnet-contrib, Apache-2.0, maintained; GitHub has no Microsoft package).
+**Sign-in packages:** `Microsoft.AspNetCore.Authentication.Google` (Microsoft, MIT) and `AspNet.Security.OAuth.GitHub` (aspnet-contrib, Apache-2.0, maintained; GitHub has no Microsoft package). **MudBlazor 9.10** (MIT, a release every 2–4 weeks) for all UI.
 
 **Providers register only when configured** (`Program.cs`): a missing `Authentication:Google` section simply skips `AddGoogle`. Local runs and CI tests need no secrets.
 - Secrets: Render environment variables (`Authentication__Google__ClientId` …, `__` = `:`), `dotnet user-secrets` locally. Never in `appsettings.json` or git.
 
-**Provider-verified email creates the account directly** (`ExternalLogin.razor`, `SignInWithProviderEmailAsync`)
-- Why: the template asks new external users to re-type their email and then confirm it by email — pointless (the provider already verified it) and a dead end (we send no emails). CLAUDE.md §10.
-- Same email from Google and GitHub → the second provider is *linked* to the existing account (one person, one profile).
-- A locked-out (blocked) user can't bypass the block by linking another provider.
-- No email from the provider (GitHub account with a private email and no `user:email` grant) → the template's form still asks for one.
-- GitHub requests the `user:email` scope so private emails are still returned.
+**Only provider-verified emails are trusted** (`Program.cs`, `Infrastructure/VerifiedEmailGitHubHandler.cs`)
+- Why: accounts are created and *linked* by email, and the bootstrap admin is granted by email. An unverified address would let someone claim another person's account.
+- Google: the email claim is mapped only when `email_verified` is `true`.
+- GitHub: the stock handler takes the *primary* address from `/user/emails` without checking `verified`. A 15-line subclass overrides `GetEmailAsync` to require `primary && verified`, and the profile's public `email` mapping is removed so the check always runs.
+- `RequireUniqueEmail = true` makes "one email = one account" hold in the database too.
+- Rejected: dropping link-by-email (the same person would get two unrelated profiles).
+
+**`ExternalLogin` is redirect-only** (`Components/Account/Pages/ExternalLogin.razor`)
+- Known login → set up → sign in. New login → find the user by (verified) email or create one with `EmailConfirmed = true` → link → set up → sign in.
+- No verified email → back to Login with an error. The template's "type an email" form is gone: that address would be unverified, and it was the only path that needed email confirmation. Every account therefore has a confirmed email and `RequireConfirmedAccount` never blocks an external user (CLAUDE.md §10).
+- A blocked (locked-out) user can't get back in by linking a second provider.
+
+**Roles and onboarding** (`Features/Account/AppRoles.cs`, `UserOnboarding.cs`)
+- `AddRoles<IdentityRole>()` must come before `AddEntityFrameworkStores`: that call picks the role-aware stores only if a role type is set. The role tables already existed in the Initial migration, so no schema change.
+- Roles are seeded at startup after migrations.
+- `UserOnboarding.EnsureSetUpAsync` runs on **every** sign-in, **before** the cookie is issued, so the cookie already carries the roles. It is idempotent, so it also repaired accounts created before it existed:
+  1. add Candidate if missing;
+  2. add Administrator if the email is in `Admin:BootstrapEmails` **and no administrator exists** — a recovery path, not a permanent grant, so an admin who removes their own role isn't silently re-promoted;
+  3. create the `Profile` row if missing.
+- Rejected: seeding a fixed admin account (a password or email in code/config that grants power forever).
+
+**Pruned Identity** — external sign-in only
+- Deleted: register, password, email confirmation, 2FA, passkey and Manage pages, their endpoints, the no-op email sender, and `AddDefaultTokenProviders` (tokens serve only those flows; the security-stamp check doesn't need them).
+- Kept `IdentitySchemaVersions.Version3` so the model (and next migration) doesn't drop the passkey table.
+
+**Static vs interactive pages**
+- Only `Login` and `ExternalLogin` stay static SSR (`[ExcludeFromInteractiveRouting]`): they write cookies, which needs the HTTP response. They use `AccountLayout`.
+- Everything else, including `AccessDenied` and `Lockout`, is interactive (`MainLayout`).
+- `AppBar` is shared by both layouts, so every action in it is a plain link or form that works without a circuit: search is a GET form, language/theme are POST forms, sign-out is the Identity POST form. Only the signed-in `MudMenu` needs interactivity, and signed-in users never see the static pages (Login redirects them away).
+
+**Language and theme** (`Infrastructure/Preferences.cs`)
+- Both are cookies, because only the first HTTP request of a page load can read them (`App.razor`); the circuit can't see `HttpContext` (CLAUDE.md §3.7). `UseRequestLocalization` reads the culture cookie; `App.razor` reads the theme cookie and passes `DarkMode` through `Routes` as a cascading value.
+- Switching = `POST /Preferences/Culture|Theme` with an antiforgery token (form binding makes minimal APIs require it) → set cookie → save `PreferredCulture`/`PreferredTheme` for signed-in users → redirect back (local URLs only) → the page reloads.
+- The reload is required for culture: a circuit's culture is fixed when it starts. The theme reuses the same path: one mechanism, no JavaScript, works on static pages too. Cost: one reload on a rare action.
+- At sign-in `Preferences.RestoreCookies` copies the saved choices into the cookies, so they follow the user to other browsers.
+- Rejected: GET endpoints (a link on another site could change a signed-in user's saved settings); flipping the theme in place with JS cookie writes (a second code path for static pages).
+
+**Strings** — every UI string is `L["English text"]` (`IStringLocalizer<SharedResource>` injected in the root `_Imports.razor`). Only `Resources/SharedResource.bn.resx` exists: a missing key renders the key itself, so English needs no file. MudBlazor's built-in strings (pager "Rows per page") stay English until the P7 i18n pass (`MudLocalizer`).
+
+**Grid + toolbar pattern** (`Features/Admin/Users.razor`, `UserAdminService.cs`)
+- `MudDataGrid` with `ServerData`: paging, sorting and filtering run in the database. Each load is **two SQL statements** — a `COUNT` and one page query whose role flags are `EXISTS` subqueries (no N+1; checked in the SQL log).
+- Only whitelisted columns sort (anything else → newest first), then `ThenBy(Id)` so rows with equal values (e.g. users backfilled with the same `CreatedAt`) page stably.
+- Checkbox selection, actions in a toolbar above the grid (never in rows), `Breakpoint.None` so phones get a scrollable table, not cards.
+- Rows are a `record`, so re-fetched rows equal the selected ones and selection survives paging.
+- The service checks the Administrator role itself (the page attribute is not the security boundary).
+- No toolbar actions yet: block/roles/delete need P7's immediate-revocation rules. Row click selects until a user detail page exists.
+
+**Routes** — a signed-in user without the page's role sees "Access denied" instead of being sent to sign in again (which would loop).
 
 ### Likely questions
-- *Where do OAuth redirect URIs come from?* — `/signin-google` and `/signin-github` are the handlers' default `CallbackPath`. The host part comes from the request; behind Render's proxy `UseForwardedHeaders` makes it `https://…`, which must match the URIs registered at Google/GitHub exactly.
-- *Why is linking by email safe?* — both providers only return verified emails; an attacker would have to control the victim's email at Google or GitHub.
+- *Where do OAuth redirect URIs come from?* — `/signin-google` and `/signin-github` are the handlers' default `CallbackPath`. Scheme and host come from the request; behind Render's proxy `UseForwardedHeaders` makes the scheme `https` — **provided it runs before authentication** (see the incident below).
+- *Why is linking by email safe?* — only emails the provider marks as verified are accepted (Google `email_verified`; GitHub `verified` via our handler), and emails are unique per user. An attacker would need control of the victim's mailbox.
+- *How does a new user become Candidate before the first page loads?* — `EnsureSetUpAsync` runs before `SignInAsync`, and role claims are written into the cookie at sign-in.
+- *Why do role changes need a new sign-in?* — role claims live in the cookie; they refresh at sign-in or when the security stamp is revalidated. Immediate revocation (P7) updates the stamp and pushes a revalidation.
+- *Why POST for switching a theme?* — it also writes to the database for signed-in users; a state-changing GET is CSRF-able because the auth cookie is `SameSite=Lax`.
+- *How is the grid kept from loading the whole table?* — `ServerData` hands `Page`/`PageSize`/sort to the service, which applies `Skip/Take` in SQL.
 
 ### Change recipes
-- *Add another provider (e.g. Microsoft)*: add the package to `Directory.Packages.props` + the project, add an `if (section.Exists()) authentication.AddMicrosoftAccount(...)` block, set its two env vars. The login page lists every registered scheme automatically.
+- *Add a grid column + sort*: add the field to `UserRow` and to the `Select`; add a `PropertyColumn`; add a `(nameof(UserRow.X), …)` case to the sort switch.
+- *Add a toolbar action*: a `MudButton` in `ToolBarContent` with `Disabled="@(selected is not { Count: > 0 })"`, calling a new service method that checks the role and takes the selected ids.
+- *Add a language*: add the code to `Preferences.Cultures`, add `SharedResource.<code>.resx`; with more than two languages the switch becomes a `MudMenu` of forms.
+- *Grant Recruiters a page*: `@attribute [Authorize(Roles = $"{AppRoles.Recruiter},{AppRoles.Administrator}")]` on the page, the same check in its service, and an `AuthorizeView Roles=…` around its nav link.
+- *Add another provider (e.g. Microsoft)*: package in `Directory.Packages.props` + project, an `if (section.Exists())` block with a verified-email claim mapping, two env vars. The login page lists every registered scheme.
+
+## Incident — OAuth callbacks saw `http://` behind the proxy (fixed)
+- **Symptom (found in review, before anyone could sign in on Render):** the challenge sent `redirect_uri=https://…/signin-google`, but the callback's code exchange would send `http://…`, which the provider rejects.
+- **Cause:** `Program.cs` never called `UseAuthentication`, so `WebApplication` inserted it automatically — *before* all of our middleware, including `UseForwardedHeaders`. OAuth callbacks are handled inside the authentication middleware, so they saw the proxy's plain-http request.
+- **Fix:** explicit `app.UseAuthentication(); app.UseAuthorization();` after `UseHttpsRedirection`.
+- **Guard:** `UserAdminTests.Anonymous_request_behind_a_tls_proxy_is_redirected_to_https_login` fails on the old pipeline (checked by reverting the fix).
+
+## Incident — unverified GitHub email trusted (fixed)
+- **Cause:** `AspNet.Security.OAuth.GitHub` picks the primary address without checking `verified`; with link-by-email that allowed account takeover and a race for the bootstrap admin role.
+- **Fix:** `VerifiedEmailGitHubHandler` + Google `email_verified` mapping (see Decisions).
+- **Lesson:** "the provider verified it" must be checked in code, not assumed.
 
 ## Incident — blank page in production (fixed)
 - **Symptom:** the live site rendered a white page; `/health` was fine.

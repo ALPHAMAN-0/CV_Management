@@ -13,7 +13,7 @@ This file defines HOW we build it. Defense notes you maintain: `docs/DEFENSE.md`
 
 ## 1. Stack (fixed)
 - .NET 10 LTS, C# latest, nullable enabled, warnings as errors.
-- Blazor Web App: global **InteractiveServer**, **prerender disabled** (set in `App.razor` via `new InteractiveServerRenderMode(prerender: false)`; the template flag alone does not do it). Identity account pages stay static SSR, as the template renders them.
+- Blazor Web App: global **InteractiveServer**, **prerender disabled** (set in `App.razor` via `new InteractiveServerRenderMode(prerender: false)`; the template flag alone does not do it). Only the sign-in pages (`Login`, `ExternalLogin`) stay static SSR — they write cookies; the rest of the template's account pages were pruned in P1.
 - ASP.NET Core Identity (cookies) + Google + GitHub external login. Core scope = external login only.
 - EF Core 10 + Npgsql → PostgreSQL (Docker locally, managed Postgres in prod).
 - MudBlazor for all UI: data grid, dialogs, autocomplete, chips, theming/dark mode.
@@ -35,8 +35,9 @@ src/CvPlatform.Web/
   Features/<Feature>/          # vertical slice: pages, components, <Feature>Service, DTO records
                                # Attributes, Profiles, Positions, Cvs, Discussions, Search, Home, Admin, Account
   Infrastructure/              # Cloudinary signing, IAppEvents bus, auth revalidation, culture/theme endpoints
-  Shared/                      # layout, app bar, search box, grid+toolbar pattern, per-type value editors/displays
-  Resources/                   # SharedResource.resx + SharedResource.<lang>.resx
+  Components/                  # template root: App, Routes, Layout/ (layouts, app bar, nav), Account/ (sign-in pages)
+  Shared/                      # per-type value editors/displays and other shared components (no .cs in a `Shared` namespace: CA1716)
+  Resources/                   # SharedResource.<lang>.resx only; the English text is the key, so English needs no file
 tests/CvPlatform.Domain.Tests/ # pure unit tests
 tests/CvPlatform.Web.Tests/    # integration tests against real Postgres (Testcontainers)
 docs/REQUIREMENTS.md  docs/DEFENSE.md
@@ -128,7 +129,7 @@ Indexes beyond PKs/uniques: `Position(UpdatedAt DESC)`, `Cv(PositionId, Status)`
 
 ## 10. Auth, roles, admin
 - Roles: Candidate (default on first login), Recruiter, Administrator — additive. Policies: `RecruiterOrAdmin`; resource-based `OwnerOrAdmin` handler (Admin passes every owner check, i.e. acts as the owner of every page).
-- External sign-up creates the user straight from provider claims (provider-verified email); `RequireConfirmedAccount` must not block external users. GitHub needs the `user:email` scope and a null-email path.
+- External sign-up creates the user straight from provider claims; `RequireConfirmedAccount` must not block external users. **Only provider-verified emails are trusted** (Google `email_verified`; GitHub `primary && verified` via `VerifiedEmailGitHubHandler`) because accounts are linked and admins bootstrapped by email. GitHub needs the `user:email` scope; the null-email path is an error redirect back to Login.
 - Bootstrap: emails listed in `Admin:BootstrapEmails` receive Administrator **only when no admin exists** (a recovery path that doesn't fight self-demotion).
 - User-management grid: view, block/unblock, delete, add/remove roles. An Admin may remove their own Admin role.
 - Revocation takes effect immediately: update the security stamp; HTTP security-stamp validation interval ≈ 0; circuits use a revalidating auth-state provider with a short interval **plus push** — admin actions publish `UserInvalidated(userId)` on `IAppEvents` and affected circuits revalidate at once. A change to your own roles reloads through an endpoint that calls `RefreshSignInAsync`.
@@ -137,14 +138,14 @@ Indexes beyond PKs/uniques: `Position(UpdatedAt DESC)`, `Cv(PositionId, Status)`
 
 ## 11. UI rules (graded — each violation costs 20%)
 - Positions, CVs, attributes, users, projects: **tables only** — no tiles, cards or galleries, including on mobile (disable the grid's stacked/card breakpoint; horizontal scroll + hide secondary columns).
-- **No buttons in table rows.** Checkbox selection + a toolbar above the grid (Edit/Duplicate enabled for exactly one selected row, Delete for ≥1). Row click opens details. Links inside cells are fine. Outside tables prefer toolbar + selection; hover- or long-press-revealed actions are acceptable; never static per-item buttons.
+- **No buttons in table rows.** Checkbox selection + a toolbar above the grid (Edit/Duplicate enabled for exactly one selected row, Delete for ≥1). Row click opens details (a grid with no detail page yet, e.g. Users, selects on row click). Links inside cells are fine. Outside tables prefer toolbar + selection; hover- or long-press-revealed actions are acceptable; never static per-item buttons.
 - Every page: app bar with logo, full-text search box, language switch, theme toggle, user menu; role-aware nav drawer; breadcrumbs on detail pages.
 - One shared "missing value" style (red), used everywhere.
 - Attribute picker (shared by profile, template and rule builder): server-side prefix lookup, "Recently used", category filter.
 - Tag input: MudAutocomplete (server prefix search, new values allowed) + chips; tags normalized.
 - Tag cloud: a maintained renderer if one fits, else weighted chips; clicking a tag opens search by tag (CVs for Recruiter/Admin, positions for everyone else).
-- i18n: every UI string via `IStringLocalizer<SharedResource>`; English + Bengali (`bn`). Switching culture = endpoint that sets the culture cookie and saves `PreferredCulture`, then a full reload. User content is never translated.
-- Theme: light/dark via `MudThemeProvider`, persisted to `PreferredTheme` (users) or a cookie (anonymous).
+- i18n: every UI string via `IStringLocalizer<SharedResource>`; English + Bengali (`bn`). Switching culture = antiforgery POST endpoint that sets the culture cookie and saves `PreferredCulture`, then a full reload. User content is never translated.
+- Theme: light/dark via `MudThemeProvider`; same mechanism as culture (POST endpoint → cookie, plus `PreferredTheme` for users → reload). Saved choices are restored into the cookies at sign-in.
 
 ## 12. Decisions on spec ambiguities (confirm with the mentor; update here if overruled)
 1. Lost access → the CV is hidden from candidate lists, position CV lists and search for everyone except Admin (who sees a "hidden" marker). Nothing is deleted.
