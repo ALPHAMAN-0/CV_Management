@@ -23,11 +23,17 @@
   <data name="Account blocked" xml:space="preserve">
     <value>অ্যাকাউন্ট ব্লক করা হয়েছে</value>
   </data>
+  <data name="Administrator" xml:space="preserve">
+    <value>অ্যাডমিনিস্ট্রেটর</value>
+  </data>
   <data name="An error occurred while processing your request." xml:space="preserve">
     <value>আপনার অনুরোধ প্রক্রিয়া করার সময় একটি ত্রুটি ঘটেছে।</value>
   </data>
   <data name="An unhandled error has occurred." xml:space="preserve">
     <value>একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।</value>
+  </data>
+  <data name="Blocked" xml:space="preserve">
+    <value>ব্লক করা</value>
   </data>
   <data name="Build one profile, then generate a CV tailored to each position." xml:space="preserve">
     <value>একবার প্রোফাইল তৈরি করুন, তারপর প্রতিটি পদের জন্য উপযোগী সিভি তৈরি করুন।</value>
@@ -35,8 +41,14 @@
   <data name="Continue with {0}" xml:space="preserve">
     <value>{0} দিয়ে চালিয়ে যান</value>
   </data>
+  <data name="Created" xml:space="preserve">
+    <value>তৈরির তারিখ</value>
+  </data>
   <data name="Dark mode" xml:space="preserve">
     <value>ডার্ক মোড</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>ইমেইল</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>ত্রুটি</value>
@@ -62,8 +74,14 @@
   <data name="No sign-in providers are configured." xml:space="preserve">
     <value>কোনো সাইন-ইন প্রদানকারী কনফিগার করা নেই।</value>
   </data>
+  <data name="No users found." xml:space="preserve">
+    <value>কোনো ব্যবহারকারী পাওয়া যায়নি।</value>
+  </data>
   <data name="Not found" xml:space="preserve">
     <value>পাওয়া যায়নি</value>
+  </data>
+  <data name="Recruiter" xml:space="preserve">
+    <value>রিক্রুটার</value>
   </data>
   <data name="Reload" xml:space="preserve">
     <value>আবার লোড করুন</value>
@@ -73,6 +91,9 @@
   </data>
   <data name="Search" xml:space="preserve">
     <value>অনুসন্ধান</value>
+  </data>
+  <data name="Search by email" xml:space="preserve">
+    <value>ইমেইল দিয়ে খুঁজুন</value>
   </data>
   <data name="Sign in" xml:space="preserve">
     <value>সাইন ইন</value>
@@ -95,6 +116,9 @@
   <data name="Type in the search box to find positions and CVs." xml:space="preserve">
     <value>পদ ও সিভি খুঁজতে অনুসন্ধান বাক্সে লিখুন।</value>
   </data>
+  <data name="Users" xml:space="preserve">
+    <value>ব্যবহারকারী</value>
+  </data>
   <data name="Welcome to CV Platform" xml:space="preserve">
     <value>সিভি প্ল্যাটফর্মে স্বাগতম</value>
   </data>
@@ -103,5 +127,8 @@
   </data>
   <data name="{0} did not share a verified email address. Verify one there, or use another provider." xml:space="preserve">
     <value>{0} কোনো যাচাইকৃত ইমেইল ঠিকানা শেয়ার করেনি। সেখানে একটি ইমেইল যাচাই করুন, অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>
+  </data>
+  <data name="{0} selected" xml:space="preserve">
+    <value>{0}টি নির্বাচিত</value>
   </data>
 </root>

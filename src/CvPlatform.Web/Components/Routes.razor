@@ -6,7 +6,15 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
-                    <RedirectToLogin />
+                    @* Signed in but lacking the role: sending them to sign in again would loop. *@
+                    @if (context.User.Identity?.IsAuthenticated == true)
+                    {
+                        <AccessDenied />
+                    }
+                    else
+                    {
+                        <RedirectToLogin />
+                    }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />

@@ -1,0 +1,55 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = AppRoles.Administrator)]
+@inject UserAdminService UserAdmin
+
+@* The grid + toolbar pattern every list follows: server-side paging/sorting/filtering, checkbox
+   selection, actions in the toolbar (never in rows), no card layout on small screens.
+   Toolbar actions (block, roles, delete) come with user management in phase 7. *@
+<PageTitle>@L["Users"]</PageTitle>
+
+<MudDataGrid @ref="grid" T="UserRow" ServerData="LoadAsync"
+             MultiSelection="true" @bind-SelectedItems="selected"
+             SortMode="SortMode.Single" Breakpoint="Breakpoint.None" HorizontalScrollbar="true"
+             Dense="true" Hover="true" RowsPerPage="25">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6" HtmlTag="h1">@L["Users"]</MudText>
+        <MudSpacer />
+        @if (selected is { Count: > 0 })
+        {
+            <MudText Typo="Typo.body2" Class="mr-4">@L["{0} selected", selected.Count]</MudText>
+        }
+        <MudTextField T="string" @bind-Value="search" Placeholder="@L["Search by email"]"
+                      DebounceInterval="300" OnDebounceIntervalElapsed="@(_ => grid.ReloadServerData())"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mt-0" Style="max-width: 280px" />
+    </ToolBarContent>
+    <Columns>
+        <SelectColumn T="UserRow" />
+        <PropertyColumn Property="u => u.Email" Title="@L["Email"]" />
+        <PropertyColumn Property="u => u.CreatedAt" Title="@L["Created"]" Format="d" />
+        <TemplateColumn T="UserRow" Title="@L["Recruiter"]" Sortable="false">
+            <CellTemplate>@if (context.Item.IsRecruiter) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /> }</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn T="UserRow" Title="@L["Administrator"]" Sortable="false">
+            <CellTemplate>@if (context.Item.IsAdministrator) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /> }</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn T="UserRow" Title="@L["Blocked"]" Sortable="false">
+            <CellTemplate>@if (context.Item.IsBlocked) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /> }</CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText>@L["No users found."]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="UserRow" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private MudDataGrid<UserRow> grid = default!;
+    private HashSet<UserRow>? selected = [];
+    private string? search;
+
+    private Task<GridData<UserRow>> LoadAsync(GridState<UserRow> state, CancellationToken ct) =>
+        UserAdmin.ListAsync(search, state, ct);
+}
