@@ -16,3 +16,12 @@ h1:focus {
 .appbar-search .mud-input {
     background-color: var(--mud-palette-surface);
 }
+
+/* Grid toolbars carry a title, actions and filters. MudBlazor gives them a fixed height, so on a
+   phone they would squeeze and clip; let them wrap onto more lines (as MudToolBar's WrapContent does). */
+.mud-table-toolbar {
+    height: auto;
+    min-height: var(--mud-internal-toolbar-height);
+    flex-wrap: wrap;
+    row-gap: 4px;
+}

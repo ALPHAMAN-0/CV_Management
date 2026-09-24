@@ -1,0 +1,128 @@
+@page "/attributes"
+@attribute [Authorize(Policy = AppPolicies.RecruiterOrAdmin)]
+@inject AttributeService AttributeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@* The grid + toolbar pattern from Users.razor. A row click opens the attribute, so selection is
+   checkbox-only (SelectOnRowClick="false"). *@
+<PageTitle>@L["Attributes"]</PageTitle>
+
+<MudDataGrid @ref="grid" T="AttributeRow" ServerData="LoadAsync"
+             MultiSelection="true" @bind-SelectedItems="selected"
+             SelectOnRowClick="false" RowClick="Open"
+             SortMode="SortMode.Single" Breakpoint="Breakpoint.None" HorizontalScrollbar="true"
+             Dense="true" Hover="true" RowsPerPage="25">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6" HtmlTag="h1" Class="mr-4">@L["Attributes"]</MudText>
+        <MudButton Href="attributes/new" StartIcon="@Icons.Material.Filled.Add">@L["New"]</MudButton>
+        <MudButton Disabled="@(selected is not { Count: 1 })" OnClick="Edit"
+                   StartIcon="@Icons.Material.Filled.Edit">@L["Edit"]</MudButton>
+        <MudButton Disabled="@(!CanDelete)" OnClick="DeleteAsync" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete">@L["Delete"]</MudButton>
+        <MudSpacer />
+        @if (selected is { Count: > 0 })
+        {
+            <MudText Typo="Typo.body2" Class="mr-4">@L["{0} selected", selected.Count]</MudText>
+        }
+        <MudSelect T="AttributeCategory?" Value="category" ValueChanged="FilterByCategoryAsync"
+                   ToStringFunc="CategoryText" aria-label="@L["Category"]"
+                   Class="mt-0 mr-4" Style="width: 200px">
+            @* null = no filter; ToStringFunc gives every item, this one included, its localized text. *@
+            <MudSelectItem T="AttributeCategory?" Value="null" />
+            @foreach (var value in Enum.GetValues<AttributeCategory>())
+            {
+                <MudSelectItem T="AttributeCategory?" Value="value" />
+            }
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="search" Placeholder="@L["Search by name"]"
+                      DebounceInterval="300" OnDebounceIntervalElapsed="SearchAsync"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mt-0" Style="width: 240px" />
+    </ToolBarContent>
+    <Columns>
+        <SelectColumn T="AttributeRow" />
+        <PropertyColumn Property="a => a.Name" Title="@L["Name"]" />
+        @* PropertyColumn, not TemplateColumn, so the grid still sends the property name to sort by. *@
+        <PropertyColumn Property="a => a.Category" Title="@L["Category"]">
+            <CellTemplate>@L[context.Item.Category.ToString()]</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="a => a.Type" Title="@L["Type"]">
+            <CellTemplate>@L[context.Item.Type.ToString()]</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn T="AttributeRow" Title="@L["System"]" Sortable="false">
+            <CellTemplate>@if (context.Item.IsSystem) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /> }</CellTemplate>
+        </TemplateColumn>
+        @* Secondary, so it gives its width to the other columns on small screens. *@
+        <PropertyColumn Property="a => a.Description" Title="@L["Description"]" Sortable="false"
+                        CellClass="d-none d-md-table-cell" HeaderClass="d-none d-md-table-cell" />
+    </Columns>
+    <NoRecordsContent>
+        <MudText>@L["No attributes found."]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="AttributeRow" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private MudDataGrid<AttributeRow> grid = default!;
+    private HashSet<AttributeRow>? selected = [];
+    private string? search;
+    private AttributeCategory? category;
+
+    // The service skips system attributes anyway; disabling the button tells the user why nothing would happen.
+    private bool CanDelete => selected is { Count: > 0 } && !selected.Any(a => a.IsSystem);
+
+    private Task<GridData<AttributeRow>> LoadAsync(GridState<AttributeRow> state, CancellationToken ct) =>
+        AttributeService.ListAsync(search, category, state, ct);
+
+    private string CategoryText(AttributeCategory? value) =>
+        value is null ? L["All categories"] : L[value.Value.ToString()];
+
+    private void Open(DataGridRowClickEventArgs<AttributeRow> args) =>
+        Navigation.NavigateTo($"attributes/{args.Item.Id}");
+
+    private void Edit() => Navigation.NavigateTo($"attributes/{selected!.Single().Id}");
+
+    private async Task DeleteAsync()
+    {
+        var ids = selected!.Select(a => a.Id).ToList();
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["Delete attributes"],
+            L["Delete {0} selected attribute(s)? This can't be undone.", ids.Count],
+            yesText: L["Delete"],
+            cancelText: L["Cancel"]);
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        // Confirmed, so it runs to completion even if the user navigates away meanwhile.
+        var deleted = await AttributeService.DeleteAsync(ids, CancellationToken.None);
+        Snackbar.Add(L["Attributes deleted: {0}", deleted], Severity.Success);
+        selected = [];
+        await ReloadFromFirstPageAsync();
+    }
+
+    private Task FilterByCategoryAsync(AttributeCategory? value)
+    {
+        category = value;
+        return ReloadFromFirstPageAsync();
+    }
+
+    private Task SearchAsync(string _) => ReloadFromFirstPageAsync();
+
+    // After a new filter or a delete, the current page could lie past the last row, so start over on
+    // the first. Changing the page reloads the grid by itself; staying on page 1 needs an explicit reload.
+    private Task ReloadFromFirstPageAsync()
+    {
+        if (grid.CurrentPage == 0)
+        {
+            return grid.ReloadServerData();
+        }
+        grid.NavigateTo(Page.First);
+        return Task.CompletedTask;
+    }
+}

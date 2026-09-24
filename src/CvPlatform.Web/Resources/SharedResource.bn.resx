@@ -26,17 +26,41 @@
   <data name="Administrator" xml:space="preserve">
     <value>অ্যাডমিনিস্ট্রেটর</value>
   </data>
+  <data name="All categories" xml:space="preserve">
+    <value>সব বিভাগ</value>
+  </data>
   <data name="An error occurred while processing your request." xml:space="preserve">
     <value>আপনার অনুরোধ প্রক্রিয়া করার সময় একটি ত্রুটি ঘটেছে।</value>
   </data>
   <data name="An unhandled error has occurred." xml:space="preserve">
     <value>একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।</value>
   </data>
+  <data name="Attributes" xml:space="preserve">
+    <value>অ্যাট্রিবিউট</value>
+  </data>
+  <data name="Attributes deleted: {0}" xml:space="preserve">
+    <value>মুছে ফেলা অ্যাট্রিবিউট: {0}টি</value>
+  </data>
   <data name="Blocked" xml:space="preserve">
     <value>ব্লক করা</value>
   </data>
+  <data name="Boolean" xml:space="preserve">
+    <value>হ্যাঁ/না</value>
+  </data>
   <data name="Build one profile, then generate a CV tailored to each position." xml:space="preserve">
     <value>একবার প্রোফাইল তৈরি করুন, তারপর প্রতিটি পদের জন্য উপযোগী সিভি তৈরি করুন।</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>বাতিল</value>
+  </data>
+  <data name="Category" xml:space="preserve">
+    <value>বিভাগ</value>
+  </data>
+  <data name="Certifications" xml:space="preserve">
+    <value>সনদপত্র</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>যোগাযোগ</value>
   </data>
   <data name="Continue with {0}" xml:space="preserve">
     <value>{0} দিয়ে চালিয়ে যান</value>
@@ -47,14 +71,47 @@
   <data name="Dark mode" xml:space="preserve">
     <value>ডার্ক মোড</value>
   </data>
+  <data name="Date" xml:space="preserve">
+    <value>তারিখ</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>মুছুন</value>
+  </data>
+  <data name="Delete attributes" xml:space="preserve">
+    <value>অ্যাট্রিবিউট মুছুন</value>
+  </data>
+  <data name="Delete {0} selected attribute(s)? This can't be undone." xml:space="preserve">
+    <value>নির্বাচিত {0}টি অ্যাট্রিবিউট মুছবেন? এটি আর ফেরানো যাবে না।</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>বিবরণ</value>
+  </data>
+  <data name="Dropdown" xml:space="preserve">
+    <value>ড্রপডাউন</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>সম্পাদনা</value>
+  </data>
+  <data name="Education" xml:space="preserve">
+    <value>শিক্ষা</value>
+  </data>
   <data name="Email" xml:space="preserve">
     <value>ইমেইল</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>ত্রুটি</value>
   </data>
+  <data name="Experience" xml:space="preserve">
+    <value>অভিজ্ঞতা</value>
+  </data>
   <data name="Home" xml:space="preserve">
     <value>হোম</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>ছবি</value>
+  </data>
+  <data name="Languages" xml:space="preserve">
+    <value>ভাষা</value>
   </data>
   <data name="Light mode" xml:space="preserve">
     <value>লাইট মোড</value>
@@ -125,8 +182,23 @@
   <data name="MudDataGridPager_RowsPerPage" xml:space="preserve">
     <value>প্রতি পৃষ্ঠায় সারি:</value>
   </data>
+  <data name="MudDialog_Close" xml:space="preserve">
+    <value>বন্ধ করুন</value>
+  </data>
   <data name="MudInput_Clear" xml:space="preserve">
     <value>মুছুন</value>
+  </data>
+  <data name="MudSnackbar_Close" xml:space="preserve">
+    <value>বন্ধ করুন</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>নাম</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>নতুন</value>
+  </data>
+  <data name="No attributes found." xml:space="preserve">
+    <value>কোনো অ্যাট্রিবিউট পাওয়া যায়নি।</value>
   </data>
   <data name='No results for "{0}".' xml:space="preserve">
     <value>"{0}"-এর জন্য কোনো ফলাফল নেই।</value>
@@ -139,6 +211,18 @@
   </data>
   <data name="Not found" xml:space="preserve">
     <value>পাওয়া যায়নি</value>
+  </data>
+  <data name="Number" xml:space="preserve">
+    <value>সংখ্যা</value>
+  </data>
+  <data name="Other" xml:space="preserve">
+    <value>অন্যান্য</value>
+  </data>
+  <data name="Period" xml:space="preserve">
+    <value>সময়কাল</value>
+  </data>
+  <data name="Personal" xml:space="preserve">
+    <value>ব্যক্তিগত</value>
   </data>
   <data name="Recruiter" xml:space="preserve">
     <value>রিক্রুটার</value>
@@ -155,6 +239,9 @@
   <data name="Search by email" xml:space="preserve">
     <value>ইমেইল দিয়ে খুঁজুন</value>
   </data>
+  <data name="Search by name" xml:space="preserve">
+    <value>নাম দিয়ে খুঁজুন</value>
+  </data>
   <data name="Sign in" xml:space="preserve">
     <value>সাইন ইন</value>
   </data>
@@ -167,14 +254,29 @@
   <data name="Sign-in information could not be loaded. Please try again." xml:space="preserve">
     <value>সাইন-ইন তথ্য লোড করা যায়নি। আবার চেষ্টা করুন।</value>
   </data>
+  <data name="Skills" xml:space="preserve">
+    <value>দক্ষতা</value>
+  </data>
   <data name="Sorry, the page you are looking for does not exist." xml:space="preserve">
     <value>দুঃখিত, আপনি যে পৃষ্ঠাটি খুঁজছেন সেটি নেই।</value>
+  </data>
+  <data name="String" xml:space="preserve">
+    <value>ছোট লেখা</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>সিস্টেম</value>
+  </data>
+  <data name="Text" xml:space="preserve">
+    <value>বড় লেখা</value>
   </data>
   <data name="The sign-in provider reported an error. Please try again." xml:space="preserve">
     <value>সাইন-ইন প্রদানকারী একটি ত্রুটি জানিয়েছে। আবার চেষ্টা করুন।</value>
   </data>
   <data name="This account has been blocked. Contact an administrator." xml:space="preserve">
     <value>এই অ্যাকাউন্টটি ব্লক করা হয়েছে। একজন অ্যাডমিনিস্ট্রেটরের সাথে যোগাযোগ করুন।</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>ধরন</value>
   </data>
   <data name="Type in the search box to find positions and CVs." xml:space="preserve">
     <value>পদ ও সিভি খুঁজতে অনুসন্ধান বাক্সে লিখুন।</value>

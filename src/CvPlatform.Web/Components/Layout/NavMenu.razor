@@ -1,5 +1,8 @@
 <MudNavMenu Class="pt-2">
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@L["Home"]</MudNavLink>
+    <AuthorizeView Policy="@AppPolicies.RecruiterOrAdmin">
+        <MudNavLink Href="attributes" Icon="@Icons.Material.Filled.Tune">@L["Attributes"]</MudNavLink>
+    </AuthorizeView>
     <AuthorizeView Roles="@AppRoles.Administrator">
         <MudNavLink Href="admin/users" Icon="@Icons.Material.Filled.People">@L["Users"]</MudNavLink>
     </AuthorizeView>
