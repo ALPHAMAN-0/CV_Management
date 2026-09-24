@@ -101,3 +101,16 @@ Every prompt given to the AI assistant (Claude Code) while building this project
 
 ### 29
 > how much work is done?
+
+---
+
+*Session 3 (Phase 2)*
+
+### 30
+> /workflow-authoring understand it when done tell me
+
+### 31
+> dose everythink done phase 2 is complete?
+
+### 32
+> ok start it when done then push is understand

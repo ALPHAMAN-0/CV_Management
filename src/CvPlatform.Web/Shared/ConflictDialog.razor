@@ -1,0 +1,41 @@
+@* Shown after a save lost the race on fields the other editor changed too. The caller opens it without
+   a close button and ignores Escape and backdrop clicks: the user has to pick one of the two sides. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-4">@L["Another user changed the same fields. Choose which values to keep."]</MudText>
+        <MudSimpleTable Dense="true" Bordered="true">
+            <thead>
+                <tr>
+                    <th>@L["Field"]</th>
+                    <th>@L["Yours"]</th>
+                    <th>@L["Theirs"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var (field, mine, theirs) in Fields)
+                {
+                    <tr>
+                        <td>@field</td>
+                        <td>@mine</td>
+                        <td>@theirs</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Close(DialogResult.Ok(false))">@L["Use theirs"]</MudButton>
+        <MudButton OnClick="() => Dialog.Close(DialogResult.Ok(true))" Variant="Variant.Filled" Color="Color.Primary">
+            @L["Keep mine"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = default!;
+
+    // Display strings, already localized by the caller; the dialog knows nothing about attributes.
+    [Parameter]
+    public IReadOnlyList<(string Field, string Mine, string Theirs)> Fields { get; set; } = [];
+}

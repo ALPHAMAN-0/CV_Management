@@ -23,17 +23,35 @@
   <data name="Account blocked" xml:space="preserve">
     <value>অ্যাকাউন্ট ব্লক করা হয়েছে</value>
   </data>
+  <data name="Add" xml:space="preserve">
+    <value>যোগ করুন</value>
+  </data>
+  <data name="Add at least one option." xml:space="preserve">
+    <value>অন্তত একটি বিকল্প যোগ করুন।</value>
+  </data>
   <data name="Administrator" xml:space="preserve">
     <value>অ্যাডমিনিস্ট্রেটর</value>
   </data>
   <data name="All categories" xml:space="preserve">
     <value>সব বিভাগ</value>
   </data>
+  <data name="An attribute with this name already exists." xml:space="preserve">
+    <value>এই নামে একটি অ্যাট্রিবিউট আগে থেকেই আছে।</value>
+  </data>
   <data name="An error occurred while processing your request." xml:space="preserve">
     <value>আপনার অনুরোধ প্রক্রিয়া করার সময় একটি ত্রুটি ঘটেছে।</value>
   </data>
   <data name="An unhandled error has occurred." xml:space="preserve">
     <value>একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।</value>
+  </data>
+  <data name="Another user changed the same fields. Choose which values to keep." xml:space="preserve">
+    <value>অন্য একজন ব্যবহারকারী একই ক্ষেত্রগুলো পরিবর্তন করেছেন। কোন মানগুলো রাখবেন তা বেছে নিন।</value>
+  </data>
+  <data name="Another user changed this attribute. Their changes were merged with yours — review and save again." xml:space="preserve">
+    <value>অন্য একজন ব্যবহারকারী এই অ্যাট্রিবিউটটি পরিবর্তন করেছেন। তাঁর পরিবর্তনগুলো আপনার পরিবর্তনের সাথে মিলিয়ে দেওয়া হয়েছে — দেখে নিয়ে আবার সংরক্ষণ করুন।</value>
+  </data>
+  <data name="At most 100 options are allowed." xml:space="preserve">
+    <value>সর্বোচ্চ 100টি বিকল্প রাখা যায়।</value>
   </data>
   <data name="Attributes" xml:space="preserve">
     <value>অ্যাট্রিবিউট</value>
@@ -58,6 +76,9 @@
   </data>
   <data name="Certifications" xml:space="preserve">
     <value>সনদপত্র</value>
+  </data>
+  <data name="Conflicting changes" xml:space="preserve">
+    <value>পরস্পরবিরোধী পরিবর্তন</value>
   </data>
   <data name="Contact" xml:space="preserve">
     <value>যোগাযোগ</value>
@@ -86,6 +107,9 @@
   <data name="Description" xml:space="preserve">
     <value>বিবরণ</value>
   </data>
+  <data name="Description must be at most 500 characters." xml:space="preserve">
+    <value>বিবরণ সর্বোচ্চ 500 অক্ষরের হতে পারে।</value>
+  </data>
   <data name="Dropdown" xml:space="preserve">
     <value>ড্রপডাউন</value>
   </data>
@@ -101,14 +125,26 @@
   <data name="Error" xml:space="preserve">
     <value>ত্রুটি</value>
   </data>
+  <data name="Every option needs a label." xml:space="preserve">
+    <value>প্রতিটি বিকল্পের একটি লেবেল থাকতে হবে।</value>
+  </data>
   <data name="Experience" xml:space="preserve">
     <value>অভিজ্ঞতা</value>
+  </data>
+  <data name="Field" xml:space="preserve">
+    <value>ক্ষেত্র</value>
   </data>
   <data name="Home" xml:space="preserve">
     <value>হোম</value>
   </data>
   <data name="Image" xml:space="preserve">
     <value>ছবি</value>
+  </data>
+  <data name="Keep mine" xml:space="preserve">
+    <value>আমারটি রাখুন</value>
+  </data>
+  <data name="Label" xml:space="preserve">
+    <value>লেবেল</value>
   </data>
   <data name="Languages" xml:space="preserve">
     <value>ভাষা</value>
@@ -118,6 +154,12 @@
   </data>
   <data name="Menu" xml:space="preserve">
     <value>মেনু</value>
+  </data>
+  <data name="Move down" xml:space="preserve">
+    <value>নিচে সরান</value>
+  </data>
+  <data name="Move up" xml:space="preserve">
+    <value>উপরে সরান</value>
   </data>
   <data name="MudDataGrid_Columns" xml:space="preserve">
     <value>কলাম</value>
@@ -185,6 +227,9 @@
   <data name="MudDialog_Close" xml:space="preserve">
     <value>বন্ধ করুন</value>
   </data>
+  <data name="MudFormComponent_Required" xml:space="preserve">
+    <value>আবশ্যক</value>
+  </data>
   <data name="MudInput_Clear" xml:space="preserve">
     <value>মুছুন</value>
   </data>
@@ -194,11 +239,23 @@
   <data name="Name" xml:space="preserve">
     <value>নাম</value>
   </data>
+  <data name="Name is required." xml:space="preserve">
+    <value>নাম দেওয়া আবশ্যক।</value>
+  </data>
+  <data name="Name must be at most 100 characters." xml:space="preserve">
+    <value>নাম সর্বোচ্চ 100 অক্ষরের হতে পারে।</value>
+  </data>
   <data name="New" xml:space="preserve">
     <value>নতুন</value>
   </data>
+  <data name="New attribute" xml:space="preserve">
+    <value>নতুন অ্যাট্রিবিউট</value>
+  </data>
   <data name="No attributes found." xml:space="preserve">
     <value>কোনো অ্যাট্রিবিউট পাওয়া যায়নি।</value>
+  </data>
+  <data name="No options yet." xml:space="preserve">
+    <value>এখনও কোনো বিকল্প নেই।</value>
   </data>
   <data name='No results for "{0}".' xml:space="preserve">
     <value>"{0}"-এর জন্য কোনো ফলাফল নেই।</value>
@@ -215,6 +272,15 @@
   <data name="Number" xml:space="preserve">
     <value>সংখ্যা</value>
   </data>
+  <data name="Option labels must be at most 100 characters." xml:space="preserve">
+    <value>বিকল্পের লেবেল সর্বোচ্চ 100 অক্ষরের হতে পারে।</value>
+  </data>
+  <data name="Option labels must be unique." xml:space="preserve">
+    <value>বিকল্পের লেবেলগুলো আলাদা হতে হবে।</value>
+  </data>
+  <data name="Options" xml:space="preserve">
+    <value>বিকল্প</value>
+  </data>
   <data name="Other" xml:space="preserve">
     <value>অন্যান্য</value>
   </data>
@@ -230,8 +296,17 @@
   <data name="Reload" xml:space="preserve">
     <value>আবার লোড করুন</value>
   </data>
+  <data name="Remove" xml:space="preserve">
+    <value>সরিয়ে দিন</value>
+  </data>
   <data name="Request ID:" xml:space="preserve">
     <value>অনুরোধ আইডি:</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>সংরক্ষণ করুন</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>সংরক্ষিত হয়েছে</value>
   </data>
   <data name="Search" xml:space="preserve">
     <value>অনুসন্ধান</value>
@@ -272,8 +347,20 @@
   <data name="The sign-in provider reported an error. Please try again." xml:space="preserve">
     <value>সাইন-ইন প্রদানকারী একটি ত্রুটি জানিয়েছে। আবার চেষ্টা করুন।</value>
   </data>
+  <data name="The type can't be changed after the attribute is created." xml:space="preserve">
+    <value>অ্যাট্রিবিউট তৈরির পর এর ধরন পরিবর্তন করা যায় না।</value>
+  </data>
+  <data name="Theirs" xml:space="preserve">
+    <value>অন্যজনের</value>
+  </data>
   <data name="This account has been blocked. Contact an administrator." xml:space="preserve">
     <value>এই অ্যাকাউন্টটি ব্লক করা হয়েছে। একজন অ্যাডমিনিস্ট্রেটরের সাথে যোগাযোগ করুন।</value>
+  </data>
+  <data name="This attribute was deleted." xml:space="preserve">
+    <value>এই অ্যাট্রিবিউটটি মুছে ফেলা হয়েছে।</value>
+  </data>
+  <data name="This type has no options." xml:space="preserve">
+    <value>এই ধরনের কোনো বিকল্প নেই।</value>
   </data>
   <data name="Type" xml:space="preserve">
     <value>ধরন</value>
@@ -281,17 +368,35 @@
   <data name="Type in the search box to find positions and CVs." xml:space="preserve">
     <value>পদ ও সিভি খুঁজতে অনুসন্ধান বাক্সে লিখুন।</value>
   </data>
+  <data name="Unknown category." xml:space="preserve">
+    <value>অজানা বিভাগ।</value>
+  </data>
+  <data name="Unknown option." xml:space="preserve">
+    <value>অজানা বিকল্প।</value>
+  </data>
+  <data name="Unknown type." xml:space="preserve">
+    <value>অজানা ধরন।</value>
+  </data>
+  <data name="Use theirs" xml:space="preserve">
+    <value>অন্যজনেরটি নিন</value>
+  </data>
   <data name="Users" xml:space="preserve">
     <value>ব্যবহারকারী</value>
   </data>
   <data name="Welcome to CV Platform" xml:space="preserve">
     <value>সিভি প্ল্যাটফর্মে স্বাগতম</value>
   </data>
+  <data name="You are not allowed to change attributes." xml:space="preserve">
+    <value>অ্যাট্রিবিউট পরিবর্তনের অনুমতি আপনার নেই।</value>
+  </data>
   <data name="You do not have access to this page." xml:space="preserve">
     <value>এই পৃষ্ঠায় আপনার প্রবেশাধিকার নেই।</value>
   </data>
   <data name="Your account could not be set up. Please try again or use another provider." xml:space="preserve">
     <value>আপনার অ্যাকাউন্ট তৈরি করা যায়নি। আবার চেষ্টা করুন অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>
+  </data>
+  <data name="Yours" xml:space="preserve">
+    <value>আপনার</value>
   </data>
   <data name="{0} did not share a verified email address. Verify one there, or use another provider." xml:space="preserve">
     <value>{0} কোনো যাচাইকৃত ইমেইল ঠিকানা শেয়ার করেনি। সেখানে একটি ইমেইল যাচাই করুন, অথবা অন্য প্রদানকারী ব্যবহার করুন।</value>

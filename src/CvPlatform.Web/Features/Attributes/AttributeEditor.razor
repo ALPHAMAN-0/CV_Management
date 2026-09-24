@@ -1,0 +1,352 @@
+@page "/attributes/new"
+@page "/attributes/{Id:int}"
+@attribute [Authorize(Policy = AppPolicies.RecruiterOrAdmin)]
+@inject AttributeService AttributeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@* An explicit Save, not autosave: the library is shared by many editors, and saving every few seconds
+   would manufacture conflicts. A stale save comes back as a Conflict and is merged field by field. *@
+<PageTitle>@Title</PageTitle>
+
+<MudBreadcrumbs Items="Breadcrumbs" Class="px-0 pt-0" />
+<MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-4">@Title</MudText>
+
+@if (!loaded)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12">
+            <MudTextField T="string" @bind-Value="name" @bind-Value:after="() => ClearError(nameof(AttributeFields.Name))"
+                          Label="@L["Name"]" Required="true" RequiredError="@L["Name is required."]"
+                          MaxLength="AttributeValidation.NameMaxLength" Counter="AttributeValidation.NameMaxLength"
+                          Error="@errors.ContainsKey(nameof(AttributeFields.Name))"
+                          ErrorText="@ErrorText(nameof(AttributeFields.Name))" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string" @bind-Value="description" @bind-Value:after="() => ClearError(nameof(AttributeFields.Description))"
+                          Label="@L["Description"]" Lines="3"
+                          MaxLength="AttributeValidation.DescriptionMaxLength" Counter="AttributeValidation.DescriptionMaxLength"
+                          Error="@errors.ContainsKey(nameof(AttributeFields.Description))"
+                          ErrorText="@ErrorText(nameof(AttributeFields.Description))" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="AttributeCategory" @bind-Value="category" @bind-Value:after="() => ClearError(nameof(AttributeFields.Category))"
+                       Label="@L["Category"]" ToStringFunc="CategoryText"
+                       Error="@errors.ContainsKey(nameof(AttributeFields.Category))"
+                       ErrorText="@ErrorText(nameof(AttributeFields.Category))">
+                @foreach (var value in Enum.GetValues<AttributeCategory>())
+                {
+                    <MudSelectItem T="AttributeCategory" Value="value" />
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            @* Stored values live in the slot of the type, so it is chosen once, at creation. *@
+            <MudSelect T="AttributeType" @bind-Value="type" @bind-Value:after="() => ClearError(nameof(AttributeFields.Type))"
+                       Label="@L["Type"]" ToStringFunc="TypeText" Disabled="@(shownId is not null)"
+                       HelperText="@(shownId is null ? null : L["The type can't be changed after the attribute is created."].Value)"
+                       Error="@errors.ContainsKey(nameof(AttributeFields.Type))"
+                       ErrorText="@ErrorText(nameof(AttributeFields.Type))">
+                @foreach (var info in AttributeTypeCatalog.All)
+                {
+                    <MudSelectItem T="AttributeType" Value="info.Type" />
+                }
+            </MudSelect>
+        </MudItem>
+        @if (AttributeTypeCatalog.For(type).HasOptions)
+        {
+            <MudItem xs="12">
+                @if (ErrorText(nameof(AttributeFields.Options)) is { } optionsError)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">@optionsError</MudAlert>
+                }
+                @* Client-side, not ServerData: the options belong to the attribute and are saved with it,
+                   and there are at most 100 of them. Cell mode edits the label in place; the other edit
+                   modes would add per-row buttons. Checkbox-only selection, so clicking into a label
+                   doesn't toggle its row. *@
+                <MudDataGrid T="OptionRow" Items="options" ReadOnly="false" EditMode="DataGridEditMode.Cell"
+                             MultiSelection="true" @bind-SelectedItems="selectedOptions" SelectOnRowClick="false"
+                             SortMode="SortMode.None" Breakpoint="Breakpoint.None" Dense="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mr-4">@L["Options"]</MudText>
+                        <MudButton OnClick="AddOption" Disabled="@(options.Count >= AttributeValidation.MaxOptions)"
+                                   StartIcon="@Icons.Material.Filled.Add">@L["Add"]</MudButton>
+                        <MudButton OnClick="RemoveOptions" Disabled="@(selectedOptions is not { Count: > 0 })"
+                                   StartIcon="@Icons.Material.Filled.Delete">@L["Remove"]</MudButton>
+                        <MudButton OnClick="() => MoveOption(-1)" Disabled="@(!CanMoveOption(-1))"
+                                   StartIcon="@Icons.Material.Filled.ArrowUpward">@L["Move up"]</MudButton>
+                        <MudButton OnClick="() => MoveOption(1)" Disabled="@(!CanMoveOption(1))"
+                                   StartIcon="@Icons.Material.Filled.ArrowDownward">@L["Move down"]</MudButton>
+                    </ToolBarContent>
+                    <Columns>
+                        <SelectColumn T="OptionRow" />
+                        <PropertyColumn Property="o => o.Label" Title="@L["Label"]" />
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText>@L["No options yet."]</MudText>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            </MudItem>
+        }
+        <MudItem xs="12">
+            <MudButton OnClick="SaveAsync" Disabled="saving" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save">@L["Save"]</MudButton>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private static readonly AttributeFields NewAttribute =
+        new("", null, AttributeCategory.Personal, AttributeType.String, []);
+
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool loaded;
+    private bool saving;
+    // The attribute on screen; null while creating one.
+    private int? shownId;
+    private int version;
+    // The fields as last loaded or saved: the "base" of the three-way merge after a conflict.
+    private AttributeFields baseFields = NewAttribute;
+    private string? name;
+    private string? description;
+    private AttributeCategory category;
+    private AttributeType type;
+    private List<OptionRow> options = [];
+    private HashSet<OptionRow>? selectedOptions = [];
+    // Field → English message from the last save; the message is also the resource key.
+    private Dictionary<string, string> errors = [];
+
+    private string Title => Id is null ? L["New attribute"] : baseFields.Name;
+
+    private IReadOnlyList<BreadcrumbItem> Breadcrumbs =>
+    [
+        new(L["Attributes"], href: "attributes"),
+        new(Title, href: null, disabled: true),
+    ];
+
+    // The router sets parameters again on every navigation, and a create moves this same instance from
+    // /attributes/new to /attributes/{id}. Only another attribute reloads the form, so input is never lost.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loaded && Id == shownId)
+        {
+            return;
+        }
+
+        loaded = false;
+        errors = [];
+        if (Id is null)
+        {
+            shownId = null;
+            version = 0;
+            baseFields = NewAttribute;
+            Fill(NewAttribute);
+        }
+        else
+        {
+            var details = await AttributeService.GetAsync(Id.Value, CancellationToken.None);
+            if (details is null)
+            {
+                Snackbar.Add(L["This attribute was deleted."], Severity.Warning);
+                Navigation.NavigateTo("attributes");
+                return;
+            }
+            Show(details);
+        }
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        try
+        {
+            var mine = CurrentFields();
+            // Once clicked, a save runs to completion even if the user leaves the page meanwhile.
+            var result = shownId is { } id
+                ? await AttributeService.SaveAsync(id, version, mine, CancellationToken.None)
+                : await AttributeService.CreateAsync(mine, CancellationToken.None);
+
+            errors = [];
+            switch (result)
+            {
+                case SaveResult<AttributeDetails>.Saved saved:
+                    var created = shownId is null;
+                    // The server's copy: trimmed values, and ids for the options just added.
+                    Show(saved.Value);
+                    Snackbar.Add(L["Saved"], Severity.Success);
+                    if (created)
+                    {
+                        // Replace, so Back returns to the list and not to an empty form.
+                        Navigation.NavigateTo($"attributes/{saved.Value.Id}", replace: true);
+                    }
+                    break;
+                case SaveResult<AttributeDetails>.Invalid invalid:
+                    errors = new(invalid.Errors);
+                    break;
+                case SaveResult<AttributeDetails>.Conflict conflict:
+                    await MergeAsync(mine, conflict.ServerState);
+                    break;
+                case SaveResult<AttributeDetails>.NotFound:
+                    Snackbar.Add(L["This attribute was deleted."], Severity.Warning);
+                    Navigation.NavigateTo("attributes");
+                    break;
+                case SaveResult<AttributeDetails>.Forbidden:
+                    Snackbar.Add(L["You are not allowed to change attributes."], Severity.Error);
+                    break;
+            }
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    // Base = what this form loaded, mine = its input, theirs = the server's current state. A field only
+    // they changed takes their value, a field only we changed keeps ours, and a field both changed
+    // differently goes to the user. The options list is one field: reordering or editing it is one intent.
+    private async Task MergeAsync(AttributeFields mine, AttributeDetails server)
+    {
+        var theirs = server.Fields;
+        var nameField = ThreeWayMerge.Field(baseFields.Name, mine.Name, theirs.Name);
+        var descriptionField = ThreeWayMerge.Field(baseFields.Description, mine.Description, theirs.Description);
+        var categoryField = ThreeWayMerge.Field(baseFields.Category, mine.Category, theirs.Category);
+        var optionsField = ThreeWayMerge.Field(
+            baseFields.Options, mine.Options, theirs.Options, (a, b) => a.SequenceEqual(b));
+
+        var conflicts = new List<(string Field, string Mine, string Theirs)>();
+        if (nameField.IsConflict)
+        {
+            conflicts.Add((L["Name"], mine.Name, theirs.Name));
+        }
+        if (descriptionField.IsConflict)
+        {
+            conflicts.Add((L["Description"], mine.Description ?? "", theirs.Description ?? ""));
+        }
+        if (categoryField.IsConflict)
+        {
+            conflicts.Add((L["Category"], CategoryText(mine.Category), CategoryText(theirs.Category)));
+        }
+        if (optionsField.IsConflict)
+        {
+            conflicts.Add((L["Options"], Labels(mine.Options), Labels(theirs.Options)));
+        }
+
+        // Their version becomes ours: the next save is checked against it, and a later merge starts from it.
+        baseFields = theirs;
+        version = server.Version;
+
+        var keepMine = conflicts.Count == 0 || await AskKeepMineAsync(conflicts);
+        Fill(new AttributeFields(
+            Resolve(nameField, theirs.Name, keepMine),
+            Resolve(descriptionField, theirs.Description, keepMine),
+            Resolve(categoryField, theirs.Category, keepMine),
+            theirs.Type,
+            Resolve(optionsField, theirs.Options, keepMine)));
+
+        if (conflicts.Count == 0)
+        {
+            // Not saved automatically: the user should see the combined result before it replaces theirs.
+            Snackbar.Add(L["Another user changed this attribute. Their changes were merged with yours — review and save again."],
+                Severity.Info);
+        }
+        else if (keepMine)
+        {
+            // One retry on the new version; if that conflicts too, the user decides again.
+            await SaveAsync();
+        }
+    }
+
+    private async Task<bool> AskKeepMineAsync(IReadOnlyList<(string Field, string Mine, string Theirs)> conflicts)
+    {
+        var parameters = new DialogParameters<ConflictDialog> { { d => d.Fields, conflicts } };
+        // Only the two choices close it: dismissing it would leave the conflict undecided.
+        var options = new DialogOptions { BackdropClick = false, CloseOnEscapeKey = false, CloseButton = false };
+        var dialog = await DialogService.ShowAsync<ConflictDialog>(L["Conflicting changes"], parameters, options);
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: true };
+    }
+
+    private static T Resolve<T>(MergedField<T> field, T theirs, bool keepMine) =>
+        field.IsConflict && !keepMine ? theirs : field.Value;
+
+    private static string Labels(IReadOnlyList<AttributeOptionInput> options) =>
+        string.Join(", ", options.Select(o => o.Label));
+
+    private void Show(AttributeDetails details)
+    {
+        shownId = details.Id;
+        version = details.Version;
+        baseFields = details.Fields;
+        Fill(details.Fields);
+    }
+
+    private void Fill(AttributeFields fields)
+    {
+        name = fields.Name;
+        description = fields.Description;
+        category = fields.Category;
+        type = fields.Type;
+        options = [.. fields.Options.Select(o => new OptionRow(o.Id, o.Label))];
+        selectedOptions = [];
+    }
+
+    // In the stored form (trimmed, blank description = null), so the merge compares real edits only.
+    private AttributeFields CurrentFields() => new(
+        name?.Trim() ?? "",
+        string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+        category,
+        type,
+        [.. options.Select(o => new AttributeOptionInput(o.Id, o.Label?.Trim() ?? ""))]);
+
+    private string? ErrorText(string field) => errors.TryGetValue(field, out var message) ? L[message].Value : null;
+
+    // The message described the value that was saved; once the user edits the field it no longer applies.
+    private void ClearError(string field) => errors.Remove(field);
+
+    private string CategoryText(AttributeCategory value) => L[value.ToString()];
+
+    private string TypeText(AttributeType value) => L[value.ToString()];
+
+    private void AddOption() => options.Add(new OptionRow(0, ""));
+
+    private void RemoveOptions()
+    {
+        options.RemoveAll(selectedOptions!.Contains);
+        selectedOptions = [];
+    }
+
+    private bool CanMoveOption(int offset)
+    {
+        if (selectedOptions is not { Count: 1 })
+        {
+            return false;
+        }
+        var target = options.IndexOf(selectedOptions.Single()) + offset;
+        return target >= 0 && target < options.Count;
+    }
+
+    private void MoveOption(int offset)
+    {
+        var option = selectedOptions!.Single();
+        var index = options.IndexOf(option);
+        options.RemoveAt(index);
+        options.Insert(index + offset, option);
+    }
+
+    // A class, not a record: two new blank rows must stay two rows to the grid's selection. Mutable,
+    // because the grid's cell editor writes the edited label straight into the row.
+    private sealed class OptionRow(int id, string? label)
+    {
+        public int Id { get; } = id;
+
+        public string? Label { get; set; } = label;
+    }
+}
