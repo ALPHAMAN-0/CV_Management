@@ -245,11 +245,11 @@ else
 
         var keepMine = conflicts.Count == 0 || await AskKeepMineAsync(conflicts);
         Fill(new AttributeFields(
-            Resolve(nameField, theirs.Name, keepMine),
-            Resolve(descriptionField, theirs.Description, keepMine),
-            Resolve(categoryField, theirs.Category, keepMine),
+            AttributeConflictResolution.Resolve(nameField, theirs.Name, keepMine),
+            AttributeConflictResolution.Resolve(descriptionField, theirs.Description, keepMine),
+            AttributeConflictResolution.Resolve(categoryField, theirs.Category, keepMine),
             theirs.Type,
-            Resolve(optionsField, theirs.Options, keepMine)));
+            AttributeConflictResolution.ResolveOptions(optionsField, theirs.Options, keepMine)));
 
         if (conflicts.Count == 0)
         {
@@ -273,9 +273,6 @@ else
         var result = await dialog.Result;
         return result is { Canceled: false, Data: true };
     }
-
-    private static T Resolve<T>(MergedField<T> field, T theirs, bool keepMine) =>
-        field.IsConflict && !keepMine ? theirs : field.Value;
 
     private static string Labels(IReadOnlyList<AttributeOptionInput> options) =>
         string.Join(", ", options.Select(o => o.Label));
