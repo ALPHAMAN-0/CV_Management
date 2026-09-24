@@ -3,7 +3,6 @@ using System.Security.Claims;
 using CvPlatform.Web.Data;
 using CvPlatform.Web.Features.Account;
 using CvPlatform.Web.Features.Admin;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +19,7 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
         var token = Guid.NewGuid().ToString("N");
         await CreateUsersAsync($"{token}-b@example.test", $"{token}-a@example.test", $"{token}-c@example.test");
 
-        var page = await CreateService(Principal(AppRoles.Administrator))
+        var page = await CreateService(TestAuth.Principal(AppRoles.Administrator))
             .ListAsync(token, State(page: 0, pageSize: 2, sortBy: nameof(UserRow.Email)), default);
 
         Assert.Equal(3, page.TotalItems);
@@ -33,7 +32,7 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
         var token = Guid.NewGuid().ToString("N");
         await CreateUsersAsync($"{token}@example.test", $"other-{Guid.NewGuid():N}@example.test");
 
-        var page = await CreateService(Principal(AppRoles.Administrator))
+        var page = await CreateService(TestAuth.Principal(AppRoles.Administrator))
             .ListAsync(token.ToUpperInvariant(), State(page: 0, pageSize: 10), default);
 
         Assert.Equal($"{token}@example.test", Assert.Single(page.Items).Email);
@@ -50,7 +49,7 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
             await users.AddToRoleAsync((await users.FindByIdAsync(recruiter.Id))!, AppRoles.Recruiter);
         }
 
-        var page = await CreateService(Principal(AppRoles.Administrator))
+        var page = await CreateService(TestAuth.Principal(AppRoles.Administrator))
             .ListAsync(token, State(page: 0, pageSize: 10), default);
 
         var row = Assert.Single(page.Items);
@@ -62,7 +61,7 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
     [Fact]
     public async Task Non_administrators_are_refused()
     {
-        var service = CreateService(Principal(AppRoles.Candidate, AppRoles.Recruiter));
+        var service = CreateService(TestAuth.Principal(AppRoles.Candidate, AppRoles.Recruiter));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.ListAsync(null, State(page: 0, pageSize: 10), default));
@@ -87,9 +86,6 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
         new(factory.Services.GetRequiredService<IDbContextFactory<AppDbContext>>(),
             new FixedAuthenticationStateProvider(principal));
 
-    private static ClaimsPrincipal Principal(params string[] roles) =>
-        new(new ClaimsIdentity(roles.Select(role => new Claim(ClaimTypes.Role, role)), authenticationType: "Test"));
-
     private static GridState<UserRow> State(int page, int pageSize, string? sortBy = null) => new()
     {
         Page = page,
@@ -109,11 +105,5 @@ public sealed class UserAdminTests(PostgresWebAppFactory factory) : IClassFixtur
             created.Add(user);
         }
         return created;
-    }
-
-    private sealed class FixedAuthenticationStateProvider(ClaimsPrincipal principal) : AuthenticationStateProvider
-    {
-        public override Task<AuthenticationState> GetAuthenticationStateAsync() =>
-            Task.FromResult(new AuthenticationState(principal));
     }
 }

@@ -15,6 +15,7 @@ using CvPlatform.Web.Data;
 using CvPlatform.Web.Data.Seed;
 using CvPlatform.Web.Features.Account;
 using CvPlatform.Web.Features.Admin;
+using CvPlatform.Web.Features.Attributes;
 using CvPlatform.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -111,6 +112,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddScoped<UserOnboarding>();
 builder.Services.AddScoped<UserAdminService>();
+builder.Services.AddScoped<AttributeService>();
 
 builder.Services.AddDataProtection()
     .SetApplicationName("CvPlatform")
