@@ -12,6 +12,7 @@ using MudBlazor.Services;
 using CvPlatform.Web.Components;
 using CvPlatform.Web.Components.Account;
 using CvPlatform.Web.Data;
+using CvPlatform.Web.Data.Seed;
 using CvPlatform.Web.Features.Account;
 using CvPlatform.Web.Features.Admin;
 using CvPlatform.Web.Infrastructure;
@@ -133,6 +134,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+    await SystemAttributes.EnsureSeededAsync(db, CancellationToken.None);
 
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     foreach (var role in AppRoles.All)

@@ -13,6 +13,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Profile> Profiles => Set<Profile>();
 
+    public DbSet<AttributeDefinition> AttributeDefinitions => Set<AttributeDefinition>();
+
+    public DbSet<AttributeOption> AttributeOptions => Set<AttributeOption>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         // Identity maps its own tables first; our configurations then add to them.
