@@ -42,7 +42,8 @@ var authentication = builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 });
 authentication.AddIdentityCookies();
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AppPolicies.RecruiterOrAdmin, policy => policy.RequireRole(AppRoles.Recruiter, AppRoles.Administrator));
 
 // Providers register only when their keys are configured, so local runs and tests need no secrets.
 var google = builder.Configuration.GetSection("Authentication:Google");
