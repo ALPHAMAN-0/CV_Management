@@ -52,7 +52,12 @@
             <CellTemplate>@L[context.Item.Type.ToString()]</CellTemplate>
         </PropertyColumn>
         <TemplateColumn T="AttributeRow" Title="@L["System"]" Sortable="false">
-            <CellTemplate>@if (context.Item.IsSystem) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" /> }</CellTemplate>
+            <CellTemplate>
+                @if (context.Item.IsSystem)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" aria-label="@L["System attribute"]" />
+                }
+            </CellTemplate>
         </TemplateColumn>
         @* Secondary, so it gives its width to the other columns on small screens. *@
         <PropertyColumn Property="a => a.Description" Title="@L["Description"]" Sortable="false"

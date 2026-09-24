@@ -341,6 +341,9 @@
   <data name="System" xml:space="preserve">
     <value>সিস্টেম</value>
   </data>
+  <data name="System attribute" xml:space="preserve">
+    <value>সিস্টেম অ্যাট্রিবিউট</value>
+  </data>
   <data name="Text" xml:space="preserve">
     <value>বড় লেখা</value>
   </data>
