@@ -113,6 +113,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 builder.Services.AddScoped<UserOnboarding>();
 builder.Services.AddScoped<UserAdminService>();
 builder.Services.AddScoped<AttributeService>();
+builder.Services.AddScoped<AttributeLookup>();
 
 builder.Services.AddDataProtection()
     .SetApplicationName("CvPlatform")

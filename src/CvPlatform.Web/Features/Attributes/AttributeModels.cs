@@ -6,6 +6,9 @@ namespace CvPlatform.Web.Features.Attributes;
 public sealed record AttributeRow(
     int Id, string Name, AttributeCategory Category, AttributeType Type, bool IsSystem, string? Description);
 
+// What the attribute picker lists: enough to show a name with its category and type.
+public sealed record AttributeChoice(int Id, string Name, AttributeCategory Category, AttributeType Type);
+
 // Id 0 marks an option the editor added; any other Id must be one of the attribute's own options.
 public sealed record AttributeOptionInput(int Id, string Label);
 
