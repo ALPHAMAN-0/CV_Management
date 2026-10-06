@@ -3,6 +3,7 @@ using CvPlatform.Domain;
 using CvPlatform.Web.Data;
 using CvPlatform.Web.Features.Account;
 using CvPlatform.Web.Features.Attributes;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -77,6 +78,128 @@ public sealed class AttributeLookupTests(PostgresWebAppFactory factory) : IClass
         Assert.Equal([$"{token} A", $"{token} B"], found.Select(c => c.Name));
     }
 
+    [Fact]
+    public async Task Recent_lists_only_the_callers_picks_newest_first()
+    {
+        var (alice, bob) = (await AddUserAsync(), await AddUserAsync());
+        var first = await AddAttributeAsync(Token());
+        var second = await AddAttributeAsync(Token());
+        var bobs = await AddAttributeAsync(Token());
+
+        await Lookup(alice).MarkUsedAsync(first, default);
+        await Lookup(alice).MarkUsedAsync(second, default);
+        await Lookup(bob).MarkUsedAsync(bobs, default);
+
+        Assert.Equal([second, first], (await Lookup(alice).RecentAsync(null, default)).Select(c => c.Id));
+        Assert.Equal([bobs], (await Lookup(bob).RecentAsync(null, default)).Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task Picking_again_moves_the_attribute_to_the_top_without_a_second_row()
+    {
+        var user = await AddUserAsync();
+        var first = await AddAttributeAsync(Token());
+        var second = await AddAttributeAsync(Token());
+
+        await Lookup(user).MarkUsedAsync(first, default);
+        await Lookup(user).MarkUsedAsync(second, default);
+        await Lookup(user).MarkUsedAsync(first, default);
+
+        Assert.Equal([first, second], (await Lookup(user).RecentAsync(null, default)).Select(c => c.Id));
+        Assert.Equal(2, await CountUsagesAsync(user));
+    }
+
+    [Fact]
+    public async Task Recent_can_be_narrowed_to_one_category()
+    {
+        var user = await AddUserAsync();
+        var name = Token();
+        var skill = await AddAttributeAsync(name, AttributeCategory.Skills, AttributeType.Number);
+        var education = await AddAttributeAsync(Token(), AttributeCategory.Education);
+        await Lookup(user).MarkUsedAsync(skill, default);
+        await Lookup(user).MarkUsedAsync(education, default);
+
+        var recent = await Lookup(user).RecentAsync(AttributeCategory.Skills, default);
+
+        Assert.Equal(
+            new AttributeChoice(skill, name, AttributeCategory.Skills, AttributeType.Number),
+            Assert.Single(recent));
+    }
+
+    [Fact]
+    public async Task Recent_returns_at_most_MaxRecent_newest_first()
+    {
+        var user = await AddUserAsync();
+        var picked = new List<int>();
+        for (var i = 0; i <= AttributeLookup.MaxRecent; i++)
+        {
+            picked.Add(await AddAttributeAsync(Token()));
+            await Lookup(user).MarkUsedAsync(picked[i], default);
+        }
+
+        var recent = await Lookup(user).RecentAsync(null, default);
+
+        // One pick more than fits: the oldest is the one left out.
+        Assert.Equal(picked.Skip(1).Reverse(), recent.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task Two_simultaneous_picks_of_the_same_attribute_leave_one_row()
+    {
+        var user = await AddUserAsync();
+        var attribute = await AddAttributeAsync(Token());
+
+        await Task.WhenAll(
+            Lookup(user).MarkUsedAsync(attribute, default),
+            Lookup(user).MarkUsedAsync(attribute, default));
+
+        Assert.Equal(1, await CountUsagesAsync(user));
+    }
+
+    [Fact]
+    public async Task Picking_an_attribute_that_no_longer_exists_is_ignored()
+    {
+        var user = await AddUserAsync();
+
+        await Lookup(user).MarkUsedAsync(int.MaxValue, default);
+
+        Assert.Empty(await Lookup(user).RecentAsync(null, default));
+    }
+
+    [Fact]
+    public async Task Deleting_an_attribute_removes_it_from_recently_used()
+    {
+        var user = await AddUserAsync();
+        var kept = await AddAttributeAsync(Token());
+        var deleted = await AddAttributeAsync(Token());
+        await Lookup(user).MarkUsedAsync(kept, default);
+        await Lookup(user).MarkUsedAsync(deleted, default);
+
+        // Set-based, as AttributeService deletes: only the database's own cascade can remove the usage row.
+        await using (var db = await CreateDbContextAsync())
+        {
+            await db.AttributeDefinitions.Where(a => a.Id == deleted).ExecuteDeleteAsync();
+        }
+
+        Assert.Equal([kept], (await Lookup(user).RecentAsync(null, default)).Select(c => c.Id));
+        Assert.Equal(1, await CountUsagesAsync(user));
+    }
+
+    [Fact]
+    public async Task Deleting_a_user_removes_their_usage_rows()
+    {
+        var user = await AddUserAsync();
+        await Lookup(user).MarkUsedAsync(await AddAttributeAsync(Token()), default);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            Assert.True((await users.DeleteAsync((await users.FindByIdAsync(user))!)).Succeeded);
+        }
+
+        Assert.Equal(0, await CountUsagesAsync(user));
+    }
+
     // Unlike managing the library (AttributeService), picking is for everyone who is signed in:
     // candidates pick attributes for their own profile.
     [Theory]
@@ -99,6 +222,8 @@ public sealed class AttributeLookupTests(PostgresWebAppFactory factory) : IClass
         var anonymous = Lookup(new ClaimsPrincipal(new ClaimsIdentity()));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => anonymous.SearchAsync(null, null, default));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => anonymous.RecentAsync(null, default));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => anonymous.MarkUsedAsync(1, default));
     }
 
     // A candidate by default: the least-privileged user who may use the picker.
@@ -106,7 +231,27 @@ public sealed class AttributeLookupTests(PostgresWebAppFactory factory) : IClass
         new(factory.Services.GetRequiredService<IDbContextFactory<AppDbContext>>(),
             new FixedAuthenticationStateProvider(user ?? TestAuth.User(Guid.NewGuid().ToString(), AppRoles.Candidate)));
 
+    private AttributeLookup Lookup(string userId) => Lookup(TestAuth.User(userId, AppRoles.Candidate));
+
     private static string Token() => Guid.NewGuid().ToString("N");
+
+    // A real user row, because usage rows reference it. Returns the user's id.
+    private async Task<string> AddUserAsync()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email = $"{Token()}@example.test";
+        var user = new ApplicationUser { UserName = email, Email = email };
+        var result = await users.CreateAsync(user);
+        Assert.True(result.Succeeded, string.Join(", ", result.Errors.Select(error => error.Description)));
+        return user.Id;
+    }
+
+    private async Task<int> CountUsagesAsync(string userId)
+    {
+        await using var db = await CreateDbContextAsync();
+        return await db.UserAttributeUsages.CountAsync(u => u.UserId == userId);
+    }
 
     private async Task<int> AddAttributeAsync(
         string name, AttributeCategory category = AttributeCategory.Other, AttributeType type = AttributeType.String)
