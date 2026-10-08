@@ -149,9 +149,25 @@ public sealed class AttributeLookupTests(PostgresWebAppFactory factory) : IClass
         var user = await AddUserAsync();
         var attribute = await AddAttributeAsync(Token());
 
-        await Task.WhenAll(
-            Lookup(user).MarkUsedAsync(attribute, default),
-            Lookup(user).MarkUsedAsync(attribute, default));
+        // The other pick, stopped halfway: its row is inserted but not committed. Our pick's UPDATE
+        // can't see that row, so it goes on to INSERT, and the database makes that INSERT wait.
+        await using var db = await CreateDbContextAsync();
+        await using var otherPick = await db.Database.BeginTransactionAsync();
+        db.UserAttributeUsages.Add(new UserAttributeUsage
+        {
+            UserId = user,
+            AttributeDefinitionId = attribute,
+            LastUsedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var pick = Lookup(user).MarkUsedAsync(attribute, default);
+        await Task.Delay(TimeSpan.FromMilliseconds(250));
+        Assert.False(pick.IsCompleted, "The pick should be waiting for the other pick's row.");
+
+        // Now the other pick wins, and ours gets a duplicate-key error it must treat as success.
+        await otherPick.CommitAsync();
+        await pick;
 
         Assert.Equal(1, await CountUsagesAsync(user));
     }

@@ -118,6 +118,27 @@ namespace CvPlatform.Web.Data.Migrations
                     b.ToTable("Profiles");
                 });
 
+            modelBuilder.Entity("CvPlatform.Domain.UserAttributeUsage", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AttributeDefinitionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "AttributeDefinitionId");
+
+                    b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("UserId", "LastUsedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("UserAttributeUsages");
+                });
+
             modelBuilder.Entity("CvPlatform.Web.Data.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -382,6 +403,21 @@ namespace CvPlatform.Web.Data.Migrations
                     b.HasOne("CvPlatform.Web.Data.ApplicationUser", null)
                         .WithOne()
                         .HasForeignKey("CvPlatform.Domain.Profile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CvPlatform.Domain.UserAttributeUsage", b =>
+                {
+                    b.HasOne("CvPlatform.Domain.AttributeDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("AttributeDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CvPlatform.Web.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

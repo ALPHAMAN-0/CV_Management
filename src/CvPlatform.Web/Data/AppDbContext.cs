@@ -17,6 +17,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<AttributeOption> AttributeOptions => Set<AttributeOption>();
 
+    public DbSet<UserAttributeUsage> UserAttributeUsages => Set<UserAttributeUsage>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         // Identity maps its own tables first; our configurations then add to them.
