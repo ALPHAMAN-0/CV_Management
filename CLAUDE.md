@@ -162,8 +162,8 @@ Indexes beyond PKs/uniques: `Position(UpdatedAt DESC)`, `Cv(PositionId, Status)`
 ## 13. Phases (each ends deployed, with DEFENSE.md updated)
 - **P0 Walking skeleton** — `dotnet new blazor --interactivity Server --all-interactive --auth Individual`, restructured per §2. Deploy #1: bare "Hello, world" Home with no DB dependency. Deploy #2: Npgsql, Dockerfile, docker-compose, forwarded headers, Data Protection keys in DB, `/health` with a DB check, migrations applied at startup (single instance), CI build + test, deployed to Render.
 - **P1 Identity & shell** — Google/GitHub, roles + bootstrap, profile auto-creation, prune unused Identity pages, app shell (search box stub, nav, theme, culture) with persistence, grid + toolbar pattern.
-- **P2 Attribute library** — CRUD, options, categories, system-attribute seed, versioned save + conflict UX, attribute picker.
-- **P3 Profile** — Me/Info/Projects, per-type editors/displays, Cloudinary upload, Markdown editor/renderer, tags, autosave + conflicts.
+- **P2 Attribute library** — CRUD, options, categories, system-attribute seed, versioned save + conflict UX, attribute picker lookup service. The picker *component* (a `MudAutocomplete` over `AttributeLookup`) belongs to its first consumer — P3 Profile.
+- **P3 Profile** — Me/Info/Projects, per-type editors/displays, the attribute picker component (consuming `AttributeLookup`), Cloudinary upload, Markdown editor/renderer, tags, autosave + conflicts.
 - **P4 Positions** — grid, create/duplicate/edit/delete, template ordering, tags, MaxProjects, Company/Level, rule builder, `PositionAccess` + its test matrix.
 - **P5 CVs** — access-guarded creation, assembly, inline editing, publish/unpublish, visibility, the position's CV list, likes.
 - **P6 Discussions, search, home** — real-time posts, FTS, latest / top-5 / tag cloud / stats (cached ~60 s), candidate page for recruiters.

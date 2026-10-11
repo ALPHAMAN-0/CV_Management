@@ -165,3 +165,66 @@ Four reviewers (correctness, security, project rules, i18n/UX) read the whole di
 - **Fix:** `dotnet publish` restores again after the full source is copied (the csproj-only restore still warms the cache).
 - **Guard:** the CI `docker` job fails if the image lacks `wwwroot/_framework/blazor.web.js`.
 - **Lesson:** a green `/health` doesn't prove the UI works; check the page in a browser after each deploy.
+
+## P2 — Attribute library
+
+### Decisions
+
+**Domain entity: typed slots, not JSONB** (`src/CvPlatform.Domain/AttributeDefinition.cs`, `AttributeOption.cs`, `UserAttributeUsage.cs`)
+- Why: each value type has its own slot (`StringValue`, `NumberValue`, `DateFrom`, `DateTo`, `BoolValue`, `OptionId`, `ImageUrl` + `ImagePublicId`). Queries stay SQL-translatable (LIKE on `StringValue`, `<` / `>` on `NumberValue` / `DateFrom` / `DateTo`, `OptionId IN (…)`), the index on `StringValue.SearchVector` (added in P6) is a real `tsvector`, and EF doesn't have to read a JSON document to render a row.
+- Rejected: a single `Jsonb` column — no per-type validation, no SQL-side filtering without `jsonb_path_ops`, no FTS without re-parsing.
+
+**`Type` is immutable once set** (`AttributeService.SaveAsync`)
+- Why: changing a type would silently destroy data — the string value would disappear from the row but the option id or the number value would still be referenced by the form template.
+- Rejected: a server-side "convert the value" tool — it would have to invent data (e.g. *Date → String* loses nothing; *String → Number* can fail). The error message tells the user to delete and recreate.
+
+**Options are owned by the attribute** (`AttributeOption`, FK with cascade delete, owned collection)
+- Why: a single `SaveChanges` commits or rolls back the attribute and all its options together, so partial state never reaches the database. Options can't exist without their attribute.
+- Rejected: options as a global list (would have allowed re-use but made the "every option is a child of *this* dropdown" rule unenforceable).
+
+**Versioned save + `SaveResult<T>`** (`Domain/SaveResult.cs`, `AttributeService.SaveAsync`)
+- Why: matches the contract CLAUDE.md §6 lays out for every aggregate. Expected failures are results, not exceptions: `Saved(newVersion, T) | Conflict(serverState) | Invalid(errors) | Forbidden | NotFound`. The 3-way merge and the conflict dialog consume `Conflict` directly.
+- The token (`AttributeDefinition.Version`, `int`) is the EF concurrency token. `SaveAsync` sets `Property(a => a.Version).OriginalValue = expectedVersion`, then `attribute.Version = expectedVersion + 1`. The `WHERE` clause of the UPDATE carries the version the editor loaded; a save committed between our read and this write throws `DbUpdateConcurrencyException` and is reported as `Conflict`. The version is bumped even when only options changed, because EF checks the token only on rows it updates.
+
+**3-way merge on `Conflict`** (`AttributeConflictResolution.cs`)
+- Why: an editor that has been idle may type into a field whose value someone else just changed. The component holds a base snapshot, the editor's dirty set, and the server state. A per-field rule: untouched locally → silently refreshed; changed on both sides → dialog: *Keep mine* (re-submit on the new version) / *Use theirs* (re-render with server state).
+- Rejected: a "force overwrite" button (loses the other editor's work without asking) and a "your changes are lost" toast (the editor has no way to recover them).
+
+**System attributes are seeded at startup, not via `HasData`** (`Data/Seed/SystemAttributes.cs`)
+- Why: the four system attributes (`FirstName`, `LastName`, `Location`, `Photo`) are *library data* that an admin may rename or re-categorise. With `HasData` the migration would own those values; any later seed tweak would generate an `UpdateData` that overwrites the admin's edits. Rows are matched by `SystemKey` (an enum the seed and the migrations both reference) because ids differ per database and names are editable. The seeder only inserts missing keys — it never touches existing rows, so it is safe on every startup.
+- Rejected: `HasData` + a one-time migration (couples data to migrations, fights admin edits).
+
+**`Type` and `Category` stored as `string` (the enum member name)** (`AttributeDefinitionConfiguration`)
+- Why: renaming a category or type in code is then a code change, not a destructive migration. Postgres enum types would couple the schema to a snapshot of the C# enum.
+- Rejected: a Postgres `CREATE TYPE` (every enum rename is a `ALTER TYPE … RENAME VALUE`, and Postgres cannot drop a value in use).
+
+**`AttributeLookup` is open to every signed-in user; `AttributeService` is gated to Recruiter/Admin** (`Features/Attributes/AttributeLookup.cs`, `AttributeService.cs`)
+- Why: reading the attribute library is needed by every page that lets the user pick one (profile, position template, rule builder). Writing is an admin task. The split keeps the gate where the action is, and pages don't have to reinvent the authorization check.
+- The `IAuthorizationService` call is in the service, not the page, per CLAUDE.md §3 ("Hiding UI is cosmetic").
+
+**Prefix search is index-backed** (`AttributeDefinitionConfiguration`, `text_pattern_ops`)
+- Why: the lookup is a short list — the user narrows it by typing, never by paging. A `LIKE 'TERM%'` becomes a `text_pattern_ops` range scan (`~>=~` / `~<~`), not a `Seq Scan`. `EXPLAIN ANALYZE` on a 4-row table already takes the index (`Buffers: shared hit=2` for the scan itself, `Execution Time: 0.159 ms`); it would scale identically to 4 000 rows.
+- Rejected: `ILIKE '%term%'` (cannot use the index; would scan the whole table on every keystroke) and a `tsvector` (overkill for a category-and-prefix filter on a small table).
+
+**"Recently used" is a per-user table, not a heap in memory** (`UserAttributeUsage`)
+- Why: the list follows the user across circuits, devices and reloads; a heap would only live as long as the Blazor Server circuit. One composite-PK row per `(user, attribute)`, with a `(UserId, LastUsedAt DESC)` index for the read. The `MarkUsedAsync` race — two tabs that pick the same attribute at the same instant — is handled by `ExecuteUpdate` first (the common case), and an `INSERT` fallback that swallows `23505 unique_violation` (the loser of the race, which the test exercises by holding the winner's transaction open in a second DbContext).
+
+**Two tables for the picker (library + recently-used) instead of one row with a `LastUsedAt` on `AttributeDefinition`**
+- Why: the library is shared by every user; "recently used" is per user. Mixing them would either denormalise the library (a `LastUsedAt` per user, written on every pick) or leak the user's history into the shared read path.
+
+### Likely questions
+- *Why the typed slots instead of one `text` column?* — every filter and every FTS query is index-backed, the index plan is trivial to reason about, and the editor picks the right control per type without inspecting the value. A JSONB blob would re-introduce validation in code for every consumer.
+- *Why no `HasData`?* — admin edits to system attributes (rename, re-categorise) would otherwise be silently undone by a future migration that re-seeds them.
+- *Why a `Conflict` result, not an exception?* — exceptions are for unexpected failures. A stale save is *expected* on a multi-user edit screen; turning it into a result lets the dialog consume it directly.
+- *Why do option changes also bump the version?* — EF checks the concurrency token only on the rows it actually UPDATE-s. If the option table didn't bump `AttributeDefinition.Version`, an option-only edit could overwrite another editor's `Name` change.
+- *Why a separate table for "recently used"?* — it follows the user across circuits and devices; per-user data on a shared table is always a denormalisation smell.
+- *Why swallow `23505`?* — the test `Two_simultaneous_picks_of_the_same_attribute_leave_one_row` demonstrates the race: two picks of the same attribute, the loser's INSERT must not propagate. Treating the duplicate-key as "the other pick already wrote this" matches the user's mental model.
+
+### Change recipes
+- *Add an attribute type*: add a value to `AttributeType`, an entry in `AttributeTypeCatalog` (slot, operators, completeness), a `*ValueEditor.razor` and `*Display.razor` under `Shared/`. The slots are typed at the database column, so adding a new type may also need a new column + a migration.
+- *Add a rule operator*: add it to the per-type list in `AttributeTypeCatalog`, then the `PositionAccess` SQL builder — no UI switch needed, the rule builder reads the list.
+- *Add a category*: add a value to `AttributeCategory`; the grid's category filter and the picker's category filter both pick it up automatically.
+- *Change the autocomplete cap*: `AttributeLookup.MaxResults` (list page size) and `MaxRecent` (recently-used cap).
+- *Tighten a duplicate-name rule*: edit `AttributeDefinition.NormalizeName`; the unique index is `IX_AttributeDefinitions_NormalizedName` (`text_pattern_ops`).
+- *Convert the conflict dialog to a different UX*: every consumer goes through `AttributeConflictResolution.Resolve(base, mine, theirs)`; the dialog is the only `MudDialog` instance.
+
