@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /Users/siam/Documents/Github/CV_Management/src/CvPlatform.Web -type f -name *.cs -o -name *.razor -o -name *.json -o -name *.csproj)"
+      "Bash(find /Users/siam/Documents/Github/CV_Management/src/CvPlatform.Web -type f -name *.cs -o -name *.razor -o -name *.json -o -name *.csproj)",
+      "Bash(dotnet --version)"
     ]
   }
 }
