@@ -2,6 +2,18 @@
 
 A Blazor Server (.NET 10) platform where candidates build a structured profile once and generate position-specific CVs from it; recruiters define positions (attribute templates + access rules), browse published CVs, like them, and discuss positions in real time.
 
+## Architecture / How it Works
+
+```mermaid
+flowchart LR
+    A[User] --> B[Cv Management]
+    B --> C{Logic}
+    C --> D[(Data)]
+    C --> E[Output]
+    D --> C
+```
+
+
 **Stack:** .NET 10 · Blazor Web App (Interactive Server) · ASP.NET Core Identity (Google, GitHub) · EF Core 10 + PostgreSQL · MudBlazor · xUnit + Testcontainers · Docker · GitHub Actions · Render
 
 ## Run locally
