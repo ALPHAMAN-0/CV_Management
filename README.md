@@ -6,11 +6,12 @@ A Blazor Server (.NET 10) platform where candidates build a structured profile o
 
 ```mermaid
 flowchart LR
-    A[User] --> B[Cv Management]
-    B --> C{Logic}
-    C --> D[(Data)]
-    C --> E[Output]
-    D --> C
+    Browser[Blazor Web App] --> SignalR[SignalR circuit]
+    SignalR --> Components[Razor components]
+    Components --> Services[Application services]
+    Services --> Identity[ASP.NET Identity]
+    Services --> DbContext[EF Core DbContext]
+    DbContext --> DB[(PostgreSQL)]
 ```
 
 
